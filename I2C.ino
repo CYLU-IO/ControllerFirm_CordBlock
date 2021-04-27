@@ -12,7 +12,10 @@ int slaves[51][4] = {0}; //slave address[id][switchState][priority][current]
    Basic Functions
 */
 void i2cManInit() {
-  Wire.begin();
+  i2cWire.begin();
+
+  pinPeripheral(11, PIO_SERCOM);
+  pinPeripheral(13, PIO_SERCOM);
 }
 
 void i2cManLoop() {
@@ -27,63 +30,61 @@ void initSlaves() {
   int newSysCurrent;
 
   do {
+    allUni = true;
+
     int nearZero = findNearZero();
     newSysCurrent = 0;
     sendCmd(UNSET_ADDR, "1" + int2str(findNearZero() + 1, 2) + "50"); //announce to addressing randomly
 
     for (int i = 1; i <= UNSET_ADDR; i++) {
-      if (sendCmd(i, "0") == 0) { //get connection
-        String returnData = receiveMessage(i, 13);
+      String returnData = receiveMessage(i, 13); //request data from slaves
 
-        if (returnData.length() > 0) {
-          int givenAddr = 0;
-          int slaveUnique = returnData.substring(2, 3).toInt();
-          int slaveId = returnData.substring(9, 14).toInt();
+      if (returnData.length() > 0) {
+        int givenAddr = 0;
+        int slaveUnique = returnData.substring(2, 3).toInt();
+        int slaveId = returnData.substring(9, 14).toInt();
 
-          Serial.println(returnData);
+        Serial.println(returnData);
 
-          if (slaveUnique && findNearZero() < i) { //the addr is unique and has available addr before current one
-            givenAddr = findNearZero();
-          } else if (!slaveUnique) { //the address isn't unique
-            givenAddr = UNSET_ADDR;
-            allUni = false;
-          }
-
-          if (givenAddr == 0) { //adress is already determined
-            if (slaves[i][0] == 0) { //slave has no id
-              slaves[i][0] = generateUniqueID(); //generate an identity
-              sendCmd(i, "3" + String(slaves[i][0])); //update device's address
-            } else {
-              if (slaveId == 1) { //Wifi module
-                slaves[i][0] = 1;
-              } else {
-                if (slaves[i][0] != slaveId) {
-                  sendCmd(i, "4" + String(slaves[i][0])); //tell to rearrange address by checking id (to tell this address's devices to self rearrange, only the slave with the id can have the address)
-                } else {
-                  int slaveState = returnData.substring(3, 4).toInt();
-                  int slavePriority = returnData.substring(4, 5).toInt();
-                  int slaveCurrent = returnData.substring(5, 9).toInt();
-
-                  //update the rest of information
-                  slaves[i][1] = slaveState; //switchState update
-                  slaves[i][2] = slavePriority; //priority update
-
-                  if (slaveCurrent - slaves[i][3] - 10 > 0) lastPlugAddr = i; //current rises in a big ratio
-
-                  slaves[i][3] = slaveCurrent; //current update
-                  newSysCurrent += slaveCurrent;
-                }
-              }
-            }
-          } else if (givenAddr != UNSET_ADDR) { //update addr to other addr
-            slaves[givenAddr][0] = slaves[i][0]; //move id to new addr
-            slaves[i][0] = 0;
-          }
-
-          if (givenAddr != 0) sendCmd(i, "2" + int2str(givenAddr, 2)); //update device's address
+        if (slaveUnique && findNearZero() < i) { //the addr is unique and has available addr before current one
+          givenAddr = findNearZero();
+        } else if (!slaveUnique) { //the address isn't unique
+          givenAddr = UNSET_ADDR;
+          allUni = false;
         }
 
-        delay(10);
+        if (givenAddr == 0) { //adress is already determined
+          if (slaves[i][0] == 0) { //slave has no id
+            slaves[i][0] = generateUniqueID(); //generate an identity
+            sendCmd(i, "3" + String(slaves[i][0])); //update device's address
+          } else {
+            if (slaveId == 1) { //Wifi module
+              slaves[i][0] = 1;
+            } else {
+              if (slaves[i][0] != slaveId) {
+                sendCmd(i, "4" + String(slaves[i][0])); //tell to rearrange address by checking id (to tell this address's devices to self rearrange, only the slave with the id can have the address)
+              } else {
+                int slaveState = returnData.substring(3, 4).toInt();
+                int slavePriority = returnData.substring(4, 5).toInt();
+                int slaveCurrent = returnData.substring(5, 9).toInt();
+
+                //update the rest of information
+                slaves[i][1] = slaveState; //switchState update
+                slaves[i][2] = slavePriority; //priority update
+
+                if (slaveCurrent - slaves[i][3] - 10 > 0) lastPlugAddr = i; //current rises in a big ratio
+
+                slaves[i][3] = slaveCurrent; //current update
+                newSysCurrent += slaveCurrent;
+              }
+            }
+          }
+        } else if (givenAddr != UNSET_ADDR) { //update addr to other addr
+          slaves[givenAddr][0] = slaves[i][0]; //move id to new addr
+          slaves[i][0] = 0;
+        }
+
+        if (givenAddr != 0) sendCmd(i, "2" + int2str(givenAddr, 2)); //update device's address
       } else {
         slaves[i][0] = 0;
       }
@@ -96,10 +97,10 @@ void initSlaves() {
 String receiveMessage(int addr, int mlength) {
   String response = "";
 
-  Wire.requestFrom(addr, mlength);
+  i2cWire.requestFrom(addr, mlength);
 
-  while (Wire.available()) {
-    char b = Wire.read();
+  while (i2cWire.available()) {
+    char b = i2cWire.read();
     response += b;
   }
 
@@ -110,11 +111,11 @@ int sendCmd(int addr, String rawCmd) {
   char * buf = (char *) malloc (rawCmd.length());
   rawCmd.toCharArray(buf, rawCmd.length() + 1);
 
-  Wire.beginTransmission(addr);
-  Wire.write(buf);
+  i2cWire.beginTransmission(addr);
+  i2cWire.write(buf);
   free(buf);
 
-  return Wire.endTransmission();
+  return i2cWire.endTransmission();
 }
 
 int scanSlaves() {
@@ -126,9 +127,9 @@ int scanSlaves(bool info) {
   int connc = 0;
 
   for (addr = 1; addr <= UNSET_ADDR; addr++) {
-    Wire.beginTransmission(addr);
+    i2cWire.beginTransmission(addr);
 
-    if (Wire.endTransmission() == 0) {
+    if (i2cWire.endTransmission() == 0) {
       if (info) Serial.println(addr);
 
       connc++;

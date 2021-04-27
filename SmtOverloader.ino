@@ -4,7 +4,7 @@ void currentChecker() {
       //check order
     } else {
       Serial.println("System current is overloaded! Cut down the last-plugged.");
-      if (lastPlugAddr != 0) sendCmd(lastPlugAddr, "5"); //cut the overloaded itself
+      //if (lastPlugAddr != 0) sendCmd(lastPlugAddr, 5); //cut the overloaded itself
     }
   }
 }

@@ -28,3 +28,7 @@ void wifiConncInit() {
 bool isWifiConncInfoFilled() {
   return (wifiSSID.length() * wifiPass.length() > 0) ? true : false;
 }
+
+void checkWiFiLed() {
+  digitalWrite(conncLedPin, (WiFi.status() == 3) ? HIGH : LOW);
+}
