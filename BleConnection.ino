@@ -78,13 +78,13 @@ void bleConncLoop() {
 void wifiTypeCharacteristicWritten(BLEDevice central, BLECharacteristic characteristic) {
   wifiType = wifiTypeCharacteristic.value();
 
-  if (isWifiConncInfoFilled()) wifiConncInit();
+  if (isWifiConncInfoFilled()) wifiInit();
 }
 
 void wifiSSIDCharacteristicWritten(BLEDevice central, BLECharacteristic characteristic) {
   wifiSSID = wifiSSIDCharacteristic.value();
   
-  if (isWifiConncInfoFilled()) wifiConncInit();
+  if (isWifiConncInfoFilled()) wifiInit();
 }
 
 void wifiUserCharacteristicWritten(BLEDevice central, BLECharacteristic characteristic) {
@@ -94,5 +94,5 @@ void wifiUserCharacteristicWritten(BLEDevice central, BLECharacteristic characte
 void wifiPassCharacteristicWritten(BLEDevice central, BLECharacteristic characteristic) {
   wifiPass = wifiPassCharacteristic.value();
 
-  if (isWifiConncInfoFilled()) wifiConncInit();
+  if (isWifiConncInfoFilled()) wifiInit();
 }

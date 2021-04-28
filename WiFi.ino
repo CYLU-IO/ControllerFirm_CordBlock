@@ -1,27 +1,18 @@
-void wifiConncInit() {
-  int wifiStatus = WL_IDLE_STATUS;
-  
-  digitalWrite(conncLedPin, LOW);
-
+void wifiInit() {
   if (WiFi.status() != WL_NO_MODULE) {
-    wifiStatus = WiFi.status();
+    int wifiStatus = WL_IDLE_STATUS;
+
+    WiFi.lowPowerMode();
+    Serial.print(F("[WiFi] Attempting to connect..."));
 
     while (wifiStatus != WL_CONNECTED) {
-      Serial.println(F("[WiFi] Attempting to connect WiFi"));
-      WiFi.lowPowerMode();
       wifiStatus = WiFi.begin(wifiSSID.c_str(), wifiPass.c_str());
-      
       delay(2000);
     }
 
-    Serial.println(F("[WiFi] Successfully connect WiFi"));
-    IPAddress ip = WiFi.localIP();
-    Serial.print(F("[WiFi] IP Address: "));
-    Serial.println(ip);
-
-    digitalWrite(conncLedPin, HIGH);
+    Serial.print(F("OK\n"));
   } else {
-    Serial.println(F("[ERROR] Cannot connect WiFi"));
+    Serial.print(F("failed\n"));
   }
 }
 
@@ -29,6 +20,10 @@ bool isWifiConncInfoFilled() {
   return (wifiSSID.length() * wifiPass.length() > 0) ? true : false;
 }
 
-void checkWiFiLed() {
-  digitalWrite(conncLedPin, (WiFi.status() == 3) ? HIGH : LOW);
+bool checkWiFi() {
+  bool _running =  (WiFi.status() == 3) ? HIGH : LOW;
+
+  digitalWrite(conncLedPin, _running);
+
+  return _running;
 }

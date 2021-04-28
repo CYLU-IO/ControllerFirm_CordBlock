@@ -6,19 +6,19 @@
 /***
    Parameters
 */
-int slaves[51][4] = {0}; //slave address[id][switchState][priority][current]
+int slaves[51][3] = {0}; //slave address[id][switchState][current]
 
 /***
    Basic Functions
 */
-void i2cManInit() {
+void i2cInit() {
   i2cWire.begin();
 
   pinPeripheral(11, PIO_SERCOM);
   pinPeripheral(13, PIO_SERCOM);
 }
 
-void i2cManLoop() {
+void i2cLoop() {
   initSlaves();
 }
 
@@ -37,14 +37,12 @@ void initSlaves() {
     sendCmd(UNSET_ADDR, "1" + int2str(findNearZero() + 1, 2) + "50"); //announce to addressing randomly
 
     for (int i = 1; i <= UNSET_ADDR; i++) {
-      String returnData = receiveMessage(i, 13); //request data from slaves
-
+      String returnData = receiveMessage(i, 12); //request data from slaves
+      
       if (returnData.length() > 0) {
         int givenAddr = 0;
         int slaveUnique = returnData.substring(2, 3).toInt();
-        int slaveId = returnData.substring(9, 14).toInt();
-
-        Serial.println(returnData);
+        int slaveId = returnData.substring(4, 8).toInt();
 
         if (slaveUnique && findNearZero() < i) { //the addr is unique and has available addr before current one
           givenAddr = findNearZero();
@@ -55,28 +53,24 @@ void initSlaves() {
 
         if (givenAddr == 0) { //adress is already determined
           if (slaves[i][0] == 0) { //slave has no id
-            slaves[i][0] = generateUniqueID(); //generate an identity
+            //slaves[i][0] = generateUniqueID(); //generate an identity
+
+            slaves[i][0] = 1234;
             sendCmd(i, "3" + String(slaves[i][0])); //update device's address
           } else {
-            if (slaveId == 1) { //Wifi module
-              slaves[i][0] = 1;
+            if (slaves[i][0] != slaveId) {
+              sendCmd(i, "4" + String(slaves[i][0])); //tell to rearrange address by checking id (to tell this address's devices to self rearrange, only the slave with the id can have the address)
             } else {
-              if (slaves[i][0] != slaveId) {
-                sendCmd(i, "4" + String(slaves[i][0])); //tell to rearrange address by checking id (to tell this address's devices to self rearrange, only the slave with the id can have the address)
-              } else {
-                int slaveState = returnData.substring(3, 4).toInt();
-                int slavePriority = returnData.substring(4, 5).toInt();
-                int slaveCurrent = returnData.substring(5, 9).toInt();
+              int slaveState = returnData.substring(3, 4).toInt();
+              int slaveCurrent = returnData.substring(8, 12).toInt();
 
-                //update the rest of information
-                slaves[i][1] = slaveState; //switchState update
-                slaves[i][2] = slavePriority; //priority update
+              //update the rest of information
+              slaves[i][1] = slaveState; //switchState update
 
-                if (slaveCurrent - slaves[i][3] - 10 > 0) lastPlugAddr = i; //current rises in a big ratio
+              if (slaveCurrent - slaves[i][3] - 10 > 0) lastPlugAddr = i; //current rises in a big ratio
 
-                slaves[i][3] = slaveCurrent; //current update
-                newSysCurrent += slaveCurrent;
-              }
+              slaves[i][3] = slaveCurrent; //current update
+              newSysCurrent += slaveCurrent;
             }
           }
         } else if (givenAddr != UNSET_ADDR) { //update addr to other addr
