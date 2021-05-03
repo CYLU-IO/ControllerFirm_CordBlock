@@ -1,14 +1,4 @@
 /***
-   Definitions
-*/
-#define UNSET_ADDR 51
-
-/***
-   Parameters
-*/
-int slaves[51][3] = {0}; //slave address[id][switchState][current]
-
-/***
    Basic Functions
 */
 void i2cInit() {
@@ -18,31 +8,43 @@ void i2cInit() {
   pinPeripheral(13, PIO_SERCOM);
 }
 
-void i2cLoop() {
-  initSlaves();
+void collectI2CData() {
+  for (int i = 0; i < connectedSlave; i++) {
+    String data = receiveMessage(i, 12); //request data from slaves
+
+    if (data.length() > 0) {
+      //regulate data
+    } else {
+      //Slave doesn not send any data, do checking
+    }
+  }
 }
 
 /*
    I2C Utilites
 */
-void initSlaves() {
+void initSlaves() { //ABANDON
   bool allUni = true;
   int newSysCurrent;
 
   do {
-    allUni = true;
-
     int nearZero = findNearZero();
     newSysCurrent = 0;
+    allUni = true;
+
     sendCmd(UNSET_ADDR, "1" + int2str(findNearZero() + 1, 2) + "50"); //announce to addressing randomly
 
-    for (int i = 1; i <= UNSET_ADDR; i++) {
+    for (int i = 1; i < UNSET_ADDR; i++) {
       String returnData = receiveMessage(i, 12); //request data from slaves
-      
+
       if (returnData.length() > 0) {
         int givenAddr = 0;
         int slaveUnique = returnData.substring(2, 3).toInt();
         int slaveId = returnData.substring(4, 8).toInt();
+
+        Serial.println("---");
+        Serial.println(i);
+        Serial.println(returnData);
 
         if (slaveUnique && findNearZero() < i) { //the addr is unique and has available addr before current one
           givenAddr = findNearZero();
@@ -53,12 +55,14 @@ void initSlaves() {
 
         if (givenAddr == 0) { //adress is already determined
           if (slaves[i][0] == 0) { //slave has no id
-            //slaves[i][0] = generateUniqueID(); //generate an identity
+            slaves[i][0] = generateUniqueID(); //generate an identity
 
-            slaves[i][0] = 1234;
+            //slaves[i][0] = 1234;
             sendCmd(i, "3" + String(slaves[i][0])); //update device's address
-          } else {
+            } else {
+
             if (slaves[i][0] != slaveId) {
+              Serial.println("conflict id");
               sendCmd(i, "4" + String(slaves[i][0])); //tell to rearrange address by checking id (to tell this address's devices to self rearrange, only the slave with the id can have the address)
             } else {
               int slaveState = returnData.substring(3, 4).toInt();
@@ -67,12 +71,12 @@ void initSlaves() {
               //update the rest of information
               slaves[i][1] = slaveState; //switchState update
 
-              if (slaveCurrent - slaves[i][3] - 10 > 0) lastPlugAddr = i; //current rises in a big ratio
+              if (slaveCurrent - slaves[i][2] - 10 > 0) lastPlugAddr = i; //current rises in a big ratio
 
-              slaves[i][3] = slaveCurrent; //current update
+              slaves[i][2] = slaveCurrent; //current update
               newSysCurrent += slaveCurrent;
             }
-          }
+            }
         } else if (givenAddr != UNSET_ADDR) { //update addr to other addr
           slaves[givenAddr][0] = slaves[i][0]; //move id to new addr
           slaves[i][0] = 0;
@@ -82,6 +86,8 @@ void initSlaves() {
       } else {
         slaves[i][0] = 0;
       }
+
+      delay(2);
     }
   } while (!allUni);
 
@@ -109,7 +115,7 @@ int sendCmd(int addr, String rawCmd) {
   i2cWire.write(buf);
   free(buf);
 
-  return i2cWire.endTransmission();
+  return i2cWire.endTransmission(true);
 }
 
 int scanSlaves() {

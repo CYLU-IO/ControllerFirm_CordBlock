@@ -1,14 +1,15 @@
-#include <SPI.h>
 #include <Wire.h>
 #include <Thread.h>
 #include <WiFiNINA.h>
 #include <ArduinoBLE.h>
 #include <ArduinoJson.h>
 #include <PubSubClient.h>
+
 #include <StaticThreadController.h>
 
 #include "wiring_private.h"
 
+#define UNSET_ADDR 51
 #define MAX_CURRENT 500
 #define MQTT_SERVER_IP "broker.emqx.io"
 #define MQTT_CLIENT_ID "tleb_"
@@ -21,6 +22,8 @@ String wifiType, wifiSSID, wifiUser, wifiPass;
 bool advSMF = false;
 int sysCurrent = 0;
 int lastPlugAddr = 0;
+int connectedSlave = 0;
+int slaves[51][3] = {0}; //slave address[id][switchState][current]
 int smfImportances[50] = {0};
 
 TwoWire i2cWire(&sercom1, 11, 13);
@@ -44,25 +47,21 @@ PubSubClient client(mqttClient);
 Thread* i2cThread = new Thread();
 Thread* mqttThread = new Thread();
 Thread* smfThread = new Thread();
-StaticThreadController<3> threadControl (i2cThread, mqttThread, smfThread);
+StaticThreadController<2> threadControl (mqttThread, smfThread);
 
 void setup() {
-  Serial.begin(9600);
-
-  //wifiSSID = "Edwin's Room";
-  //wifiPass = "Edw23190";
+  wifiSSID = "Edwin's Room";
+  wifiPass = "Edw23190";
   //wifiSSID = "network";
   //wifiPass = "nkuste215@1";
-  wifiSSID = "Cylu.iPhone.12";
-  wifiPass = "Hello123";
+  //wifiSSID = "Cylu.iPhone.12";
+  //wifiPass = "Hello123";
 
+  serialInit();
   pinInit();
-  wifiInit();
-  i2cInit();
-  mqttInit();
-
-  i2cThread->onRun(i2cLoop);
-  i2cThread->setInterval(180);
+  //wifiInit();
+  //i2cInit();
+  //mqttInit();
 
   mqttThread->onRun(mqttLoop);
   mqttThread->setInterval(3000);
@@ -72,11 +71,12 @@ void setup() {
 }
 
 void loop() {
-  checkWiFi();
+  //checkWiFi();
   //bleConncLoop();
-  threadControl.run();
-  client.loop();
-  delay(20);
+  //threadControl.run();
+  serialSignalProcess();
+  collectI2CData();
+  //client.loop();
 }
 
 void pinInit() {

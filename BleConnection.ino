@@ -93,6 +93,5 @@ void wifiUserCharacteristicWritten(BLEDevice central, BLECharacteristic characte
 
 void wifiPassCharacteristicWritten(BLEDevice central, BLECharacteristic characteristic) {
   wifiPass = wifiPassCharacteristic.value();
-
   if (isWifiConncInfoFilled()) wifiInit();
 }

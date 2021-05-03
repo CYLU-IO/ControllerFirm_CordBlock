@@ -20,7 +20,7 @@ int generateUniqueID() {
 }
 
 int findNearZero() {
-  for (int i = 1; i < 101; i++) if (slaves[i][0] == 0) return i;
+  for (int i = 1; i < 51; i++) if (slaves[i][0] == 0) return i;
 
   return -1;
 }
