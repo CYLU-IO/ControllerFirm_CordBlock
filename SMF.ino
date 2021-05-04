@@ -12,7 +12,7 @@ void checkSysCurrent() {
        for (int i = 49; i >= 0; i--) {
           int addr = searchAddrById(smfImportances[i]);
 
-          if (slaves[addr][1] && slaves[addr][2] > 10) {
+          if (modules[addr][1] && modules[addr][2] > 10) {
             sendCmd(addr, "5");
           }
        }

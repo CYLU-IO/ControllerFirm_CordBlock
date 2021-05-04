@@ -1,33 +1,12 @@
-int generateUniqueID() {
-  randomSeed(analogRead(0));
-
-  int nID;
-
-  while (true) {
-    nID = random(1000, 9999);
-
-    for (int i = 0; i < UNSET_ADDR; i++) {
-      if (slaves[i][0] == nID) {
-        nID = 0;
-        break;
-      }
-    }
-
-    if (nID != 0) break;
-  }
-
-  return nID;
-}
-
 int findNearZero() {
-  for (int i = 1; i < 51; i++) if (slaves[i][0] == 0) return i;
+  for (int i = 1; i < 51; i++) if (modules[i][0] == 0) return i;
 
   return -1;
 }
 
 int searchAddrById(int id) {
   for (int i = 1; i < UNSET_ADDR; i++) {
-    if (slaves[i][0] == id) return i;
+    if (modules[i][0] == id) return i;
   }
 
   return 0;

@@ -10,7 +10,7 @@ void  mqttInit() {
 void mqttConnect() {
   Serial.print("[MQTT] Attempting to connect...");
 
-  String mqttrId = MQTT_CLIENT_ID + int2str(generateUniqueID(), 4);
+  String mqttrId = MQTT_CLIENT_ID + String(random(1000, 9999));
   char * buf = (char *) malloc (mqttrId.length());
   mqttrId.toCharArray(buf, mqttrId.length() + 1);
 
@@ -58,13 +58,13 @@ void mqttLoop() {
   char buf[256];
 
   for (int i = 1; i < UNSET_ADDR; i++) {
-    if (slaves[i][0] != 0) {
-      JsonArray slaveData = json.createNestedArray(int2str(slaves[i][0], 4));
+    if (modules[i][0] != 0) {
+      JsonArray slaveData = json.createNestedArray(int2str(modules[i][0], 4));
       JsonObject data = slaveData.createNestedObject();
 
-      data["state"] = slaves[i][1];
-      data["priority"] = slaves[i][2];
-      data["current"] = slaves[i][3];
+      data["state"] = modules[i][1];
+      data["priority"] = modules[i][2];
+      data["current"] = modules[i][3];
 
       empty = false;
     }

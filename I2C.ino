@@ -1,6 +1,5 @@
-/***
-   Basic Functions
-*/
+TwoWire i2cWire(&sercom1, 11, 13);
+
 void i2cInit() {
   i2cWire.begin();
 
@@ -9,21 +8,64 @@ void i2cInit() {
 }
 
 void collectI2CData() {
-  for (int i = 0; i < connectedSlave; i++) {
-    String data = receiveMessage(i, 12); //request data from slaves
+  String data;
+  int newSysCurrent, current = 0;
+
+  for (int i = 1; i <= connectedSlave; i++) {
+    data = receiveMsg(i, 9); //request data from slaves
 
     if (data.length() > 0) {
-      //regulate data
+      modules[i][0] = data.substring(0, 4).toInt(); //update id
+      modules[i][1] = data.substring(4, 5).toInt(); //update switch state
+      current = data.substring(5, 9).toInt(); //update current
+
+      if (current - modules[i][2] - 10 > 0) lastPlugAddr = i; //current rises in a big ratio
+
+      modules[i][2] = current;
+      newSysCurrent += modules[i][2];
     } else {
       //Slave doesn not send any data, do checking
     }
   }
+
+  cleanDumpedModulesData();
+  sysCurrent = newSysCurrent; //update system current
 }
 
-/*
-   I2C Utilites
-*/
-void initSlaves() { //ABANDON
+void cleanDumpedModulesData() {
+  for (int i = connectedSlave - 1; i < MAX_MODULES; i++) {
+    modules[i][0] = 0;
+    modules[i][1] = 0;
+    modules[i][2] = 0;
+  }
+}
+
+String receiveMsg(int addr, int mlength) {
+  String re = "";
+
+  i2cWire.requestFrom(addr, mlength);
+
+  while (i2cWire.available()) {
+    char b = i2cWire.read();
+    re += b;
+  }
+
+  return re;
+}
+
+int sendCmd(int addr, String rawCmd) {
+  char * buf = (char *) malloc (rawCmd.length());
+  rawCmd.toCharArray(buf, rawCmd.length() + 1);
+
+  i2cWire.beginTransmission(addr);
+  i2cWire.write(buf);
+  free(buf);
+
+  return i2cWire.endTransmission();
+}
+
+/*** OLD I2C FUNCTIONS
+  void initSlaves() { //ABANDON
   bool allUni = true;
   int newSysCurrent;
 
@@ -54,37 +96,37 @@ void initSlaves() { //ABANDON
         }
 
         if (givenAddr == 0) { //adress is already determined
-          if (slaves[i][0] == 0) { //slave has no id
-            slaves[i][0] = generateUniqueID(); //generate an identity
+          if (modules[i][0] == 0) { //slave has no id
+            modules[i][0] = generateUniqueID(); //generate an identity
 
-            //slaves[i][0] = 1234;
-            sendCmd(i, "3" + String(slaves[i][0])); //update device's address
-            } else {
+            //modules[i][0] = 1234;
+            sendCmd(i, "3" + String(modules[i][0])); //update device's address
+          } else {
 
-            if (slaves[i][0] != slaveId) {
+            if (modules[i][0] != slaveId) {
               Serial.println("conflict id");
-              sendCmd(i, "4" + String(slaves[i][0])); //tell to rearrange address by checking id (to tell this address's devices to self rearrange, only the slave with the id can have the address)
+              sendCmd(i, "4" + String(modules[i][0])); //tell to rearrange address by checking id (to tell this address's devices to self rearrange, only the slave with the id can have the address)
             } else {
               int slaveState = returnData.substring(3, 4).toInt();
               int slaveCurrent = returnData.substring(8, 12).toInt();
 
               //update the rest of information
-              slaves[i][1] = slaveState; //switchState update
+              modules[i][1] = slaveState; //switchState update
 
-              if (slaveCurrent - slaves[i][2] - 10 > 0) lastPlugAddr = i; //current rises in a big ratio
+              if (slaveCurrent - modules[i][2] - 10 > 0) lastPlugAddr = i; //current rises in a big ratio
 
-              slaves[i][2] = slaveCurrent; //current update
+              modules[i][2] = slaveCurrent; //current update
               newSysCurrent += slaveCurrent;
             }
-            }
+          }
         } else if (givenAddr != UNSET_ADDR) { //update addr to other addr
-          slaves[givenAddr][0] = slaves[i][0]; //move id to new addr
-          slaves[i][0] = 0;
+          modules[givenAddr][0] = modules[i][0]; //move id to new addr
+          modules[i][0] = 0;
         }
 
         if (givenAddr != 0) sendCmd(i, "2" + int2str(givenAddr, 2)); //update device's address
       } else {
-        slaves[i][0] = 0;
+        modules[i][0] = 0;
       }
 
       delay(2);
@@ -92,37 +134,13 @@ void initSlaves() { //ABANDON
   } while (!allUni);
 
   sysCurrent = newSysCurrent;
-}
-
-String receiveMessage(int addr, int mlength) {
-  String response = "";
-
-  i2cWire.requestFrom(addr, mlength);
-
-  while (i2cWire.available()) {
-    char b = i2cWire.read();
-    response += b;
   }
 
-  return response;
-}
-
-int sendCmd(int addr, String rawCmd) {
-  char * buf = (char *) malloc (rawCmd.length());
-  rawCmd.toCharArray(buf, rawCmd.length() + 1);
-
-  i2cWire.beginTransmission(addr);
-  i2cWire.write(buf);
-  free(buf);
-
-  return i2cWire.endTransmission(true);
-}
-
-int scanSlaves() {
+  int scanSlaves() {
   return scanSlaves(false);
-}
+  }
 
-int scanSlaves(bool info) {
+  int scanSlaves(bool info) {
   uint8_t addr;
   int connc = 0;
 
@@ -134,9 +152,10 @@ int scanSlaves(bool info) {
 
       connc++;
     } else {
-      slaves[addr][0] = 0;
+      modules[addr][0] = 0;
     }
   }
 
   return connc;
-}
+  }
+*/

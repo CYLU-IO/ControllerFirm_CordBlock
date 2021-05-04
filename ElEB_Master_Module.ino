@@ -10,6 +10,7 @@
 #include "wiring_private.h"
 
 #define UNSET_ADDR 51
+#define MAX_MODULES 50
 #define MAX_CURRENT 500
 #define MQTT_SERVER_IP "broker.emqx.io"
 #define MQTT_CLIENT_ID "tleb_"
@@ -23,10 +24,8 @@ bool advSMF = false;
 int sysCurrent = 0;
 int lastPlugAddr = 0;
 int connectedSlave = 0;
-int slaves[51][3] = {0}; //slave address[id][switchState][current]
+int modules[50][3] = {0}; //slave address[id][switchState][current]
 int smfImportances[50] = {0};
-
-TwoWire i2cWire(&sercom1, 11, 13);
 
 /***
    Pin Settings
@@ -59,8 +58,8 @@ void setup() {
 
   serialInit();
   pinInit();
+  i2cInit();
   //wifiInit();
-  //i2cInit();
   //mqttInit();
 
   mqttThread->onRun(mqttLoop);

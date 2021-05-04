@@ -31,15 +31,17 @@ void serialSignalProcess() {
         }
       }
 
-      Serial.println(m);
-
       StaticJsonDocument<512> data;
       DeserializationError err = deserializeJson(data, m);
 
       if (err == DeserializationError::Ok) {
         connectedSlave = data["amount"].as<int>();
+        Serial.println(connectedSlave);
+        Serial.println("-----");
+        
         for (int i = connectedSlave - 1; i >= 0; i--) {
-          slaves[i][0] = data["id"][i].as<int>(); //insert id into slaves table
+          modules[i][0] = data["id"][i].as<int>(); //insert id into slaves table
+          Serial.println(modules[i][0]);
         }
 
         digitalWrite(conncLedPin, HIGH); //finish connection
