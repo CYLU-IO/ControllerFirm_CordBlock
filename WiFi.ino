@@ -10,6 +10,7 @@ void wifiInit() {
       delay(2000);
     }
 
+    digitalWrite(wifiLedPin, HIGH);
     Serial.print(F("OK\n"));
   } else {
     Serial.print(F("failed\n"));
@@ -23,7 +24,7 @@ bool isWifiConncInfoFilled() {
 bool checkWiFi() {
   bool _running =  (WiFi.status() == 3) ? HIGH : LOW;
 
-  digitalWrite(conncLedPin, _running);
+  digitalWrite(wifiLedPin, _running);
 
   return _running;
 }

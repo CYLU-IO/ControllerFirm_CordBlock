@@ -5,9 +5,7 @@ int findNearZero() {
 }
 
 int searchAddrById(int id) {
-  for (int i = 1; i < UNSET_ADDR; i++) {
-    if (modules[i][0] == id) return i;
-  }
+  for (int i = 1; i < UNSET_ADDR; i++) if (modules[i][0] == id) return i;
 
   return 0;
 }
@@ -28,4 +26,21 @@ String int2str(int n, int leng) {
   }
 
   return re + String(n);
+}
+
+char randChar() {
+  byte randomValue = random(0, 37);
+  char letter = randomValue + 'A';
+
+  if (randomValue > 26) letter = (randomValue - 26) + '0';
+
+  return letter;
+}
+
+void serialNumGenerator(char* sn, const char* manufacturer, const char* year, const char* week, int id_len) {
+  strcpy(sn, manufacturer);
+  strcat(sn, year);
+  strcat(sn, week);
+
+  for (int i = sizeof(sn) + 1; i < id_len + sizeof(sn); i++) sn[i] = randChar();
 }
