@@ -5,12 +5,6 @@ void turnSwitchOff(int addr) {
   sendCmd(addr, "2");
 }
 
-void boardcastWork() {
-  int i;
-  
-  for (i = 1; i <= numModule; i++) sendCmd(i, "9");
-}
-
 void checkSysCurrent() {
   if (sysCurrent > MAX_CURRENT) { //check if system current is over loaded
     if (advSMF) { //if customized emergency cutdown is enabled

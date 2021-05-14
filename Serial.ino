@@ -60,7 +60,7 @@ void serialSignalProcess() {
         Serial.println(numModule);
         Serial.println("-----");
 
-        boardcastWork();
+        Serial1.print('I'); //pass to tell modules start I2C service
         //clearSerial1();
         digitalWrite(MODULES_CONNC_STATE_PIN, HIGH); //finish connection
       } else {
