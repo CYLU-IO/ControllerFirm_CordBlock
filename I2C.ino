@@ -13,9 +13,7 @@ void collectI2CData() {
   int current = 0;
 
   for (int i = 1; i <= numModule; i++) {
-    int r = sendCmd(i, "");
-    
-    if (r != 0) continue; 
+    if (sendCmd(i, "") != 0) continue; 
     
     data = receiveMsg(i, 9); //request data from slaves
     

@@ -3,11 +3,6 @@ void serialInit() {
   Serial1.begin(9600);
 }
 
-void serialEnd() {
-  Serial.end();
-  Serial1.end();
-}
-
 void clearSerial1() {
   while (Serial1.available() > 0) Serial1.read();
 }
@@ -15,15 +10,15 @@ void clearSerial1() {
 void serialSignalProcess() {
   if (Serial1.available() > 0) {
     char sig = char(Serial1.read());
-    
-    if (sig == 'A') {
-      StaticJsonDocument<32> data;
 
-      data["action"] = 1;
+    if (sig == 'A') {
+      StaticJsonDocument<16> data;
+
       data["addr"] = 0;
 
+      Serial1.print('C');
       serializeJson(data, Serial1);
-      digitalWrite(conncLedPin, LOW);
+      Serial1.print('D');
     } else if (sig == 'C') {
       String m = "";
 
@@ -41,9 +36,10 @@ void serialSignalProcess() {
       DeserializationError err = deserializeJson(data, m);
 
       if (err == DeserializationError::Ok) {
+        Serial.println(m);
         int updateNumModule = data["amount"].as<int>();
 
-        if (numModule != updateNumModule) Serial.println(Homekit.init((const char*)serial_num, acc_name, acc_code, acc_setupId)); //Homekit
+        //if (numModule != updateNumModule) Serial.println(Homekit.init((const char*)acc_info.serial_number, (const char*)acc_info.name, (const char*)acc_info.code, (const char*)acc_info.setupId)); //Homekit
 
         for (int i = updateNumModule - 1; i >= 0; i--) {
           modules[i][0] = data["modules"][i][0].as<int>(); //insert id into slaves table
@@ -54,28 +50,22 @@ void serialSignalProcess() {
           Serial.println(modules[i][0]);
           Serial.println(data["modules"][i][3].as<const char*>());
 
-          Serial.println(Homekit.updateService((uint8_t)i + 1, (uint8_t)modules[i][0], (uint8_t)modules[i][1], data["modules"][i][3].as<const char*>()));
+          //Serial.println(Homekit.updateService((uint8_t)i + 1, (uint8_t)modules[i][0], (uint8_t)modules[i][1], data["modules"][i][3].as<const char*>()));
           Serial.println("...");
         }
 
-        if (numModule != updateNumModule) Serial.println(Homekit.begin());
+        //if (numModule != updateNumModule) Serial.println(Homekit.begin());
 
         numModule = updateNumModule;
         Serial.println(numModule);
         Serial.println("-----");
 
         boardcastWork();
-        digitalWrite(conncLedPin, HIGH); //finish connection
+        //clearSerial1();
+        digitalWrite(MODULES_CONNC_STATE_PIN, HIGH); //finish connection
       } else {
         Serial.println(err.c_str());
-        clearSerial1();
       }
     }
-  }
-}
-
-void getModuleConnection() {
-  if (numModule == 0) { //no module recorded
-    return;
   }
 }

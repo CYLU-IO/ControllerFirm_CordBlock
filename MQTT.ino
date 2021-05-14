@@ -1,3 +1,7 @@
+#define MQTT_SERVER_IP "broker.emqx.io"
+#define MQTT_CLIENT_ID "tleb_"
+#define MQTT_SUB_TOPIC "smarthome/tleb/1"
+
 void  mqttInit() {
   client.setServer(MQTT_SERVER_IP, 1883);
 

@@ -35,6 +35,7 @@ String conncLink = "192.168.1.1";
 /***
    Basic Functions
 */
+/*
 void bleConncInit() {
   if (BLE.begin()) {
     BLE.setDeviceName(DEVICE_NAME); //BLE boardcast name
@@ -72,9 +73,6 @@ void bleConncLoop() {
   }
 }
 
-/***
-   Event Handlers
-*/
 void wifiTypeCharacteristicWritten(BLEDevice central, BLECharacteristic characteristic) {
   wifiType = wifiTypeCharacteristic.value();
 
@@ -95,3 +93,4 @@ void wifiPassCharacteristicWritten(BLEDevice central, BLECharacteristic characte
   wifiPass = wifiPassCharacteristic.value();
   if (isWifiConncInfoFilled()) wifiInit();
 }
+*/

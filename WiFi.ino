@@ -6,11 +6,11 @@ void wifiInit() {
     Serial.print(F("[WiFi] Attempting to connect..."));
 
     while (wifiStatus != WL_CONNECTED) {
-      wifiStatus = WiFi.begin(wifiSSID.c_str(), wifiPass.c_str());
+      wifiStatus = WiFi.begin(wifi_setting.ssid, wifi_setting.password);
       delay(2000);
     }
 
-    digitalWrite(wifiLedPin, HIGH);
+    digitalWrite(WIFI_STATE_PIN, HIGH);
     Serial.print(F("OK\n"));
   } else {
     Serial.print(F("failed\n"));
@@ -18,13 +18,13 @@ void wifiInit() {
 }
 
 bool isWifiConncInfoFilled() {
-  return (wifiSSID.length() * wifiPass.length() > 0) ? true : false;
+  return (sizeof(wifi_setting.ssid) * sizeof(wifi_setting.password) > 0) ? true : false;
 }
 
 bool checkWiFi() {
   bool _running =  (WiFi.status() == 3) ? HIGH : LOW;
 
-  digitalWrite(wifiLedPin, _running);
+  digitalWrite(WIFI_STATE_PIN, _running);
 
   return _running;
 }
