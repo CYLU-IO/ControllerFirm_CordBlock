@@ -25,25 +25,34 @@ typedef struct {
 } WiFi_Setting;
 
 typedef struct {
-  boolean initialized;
   char serial_number[12];
   char name[32];
   char code[10];
   char setupId[4];
+  boolean initialized;
 } Accessory_Info;
 
-/*** Global Data ***/
+typedef struct {
+  int all_current;
+  int last_plugged;
+  int num_modules;
+  int modules[5][3]; //slave address[id][switchState][current]
+} System_Info;
+
+typedef struct {
+  int importances[50];
+  bool advancedSMF;
+} Smart_Modularized_Fuse_Info;
+
+/*** in-Flash Data ***/
 FlashStorage(acc_info_flash, Accessory_Info);
-Accessory_Info acc_info;
+FlashStorage(smf_info_flash, Smart_Modularized_Fuse_Info);
 
+/*** Global Data ***/
 WiFi_Setting wifi_setting;
-
-bool advSMF = false;
-int sysCurrent = 0;
-int lastPlugAddr = 0;
-int numModule = 0;
-int modules[50][3] = {0}; //slave address[id][switchState][current]
-int smfImportances[50] = {0};
+Accessory_Info acc_info;
+System_Info sys_info;
+Smart_Modularized_Fuse_Info smf_info;
 
 /*** ＭQTT ***/
 WiFiClient mqttClient;
@@ -56,6 +65,7 @@ StaticThreadController<2> threadControl (mqttThread, smfThread);
 
 void setup() {
   acc_info = acc_info_flash.read();
+  smf_info = smf_info_flash.read();
 
   if (!acc_info.initialized) { //Start Accessory Initialization
     serialNumGenerator(acc_info.serial_number, "TW0", "1", "3", 7);
@@ -68,7 +78,7 @@ void setup() {
 
   wifi_setting.ssid = "Edwin's Room";
   wifi_setting.password = "Edw23190";
-  
+
   //wifiSSID = "network";
   //wifiPass = "nkuste215@1";
   //wifiSSID = "Cylu.iPhone.12";
@@ -76,13 +86,14 @@ void setup() {
 
   serialInit();
   //while(!Serial);
-  
+
   pinInit();
   i2cInit();
-  
-  //wifiInit();
+
+  wifiInit();
   //mqttInit();
   clearSerial1();
+  moduleReconncTrial();
 
   //mqttThread->onRun(mqttLoop);
   //mqttThread->setInterval(3000);
@@ -92,12 +103,13 @@ void setup() {
 }
 
 void loop() {
-  //checkWiFi();
-  //bleConncLoop();
   //threadControl.run();
+
+  checkWiFiConnc();
   serialSignalProcess();
-  //collectI2CData();
-  //checkSysCurrent();
+  collectI2CData();
+  checkSysCurrent();
+
   //client.loop();
   delay(1);
 }

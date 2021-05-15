@@ -12,47 +12,43 @@ void collectI2CData() {
   int newSysCurrent = 0;
   int current = 0;
 
-  for (int i = 1; i <= numModule; i++) {
+  for (int i = 1; i <= sys_info.num_modules; i++) {
     if (sendCmd(i, "") != 0) continue; 
     
     data = receiveMsg(i, 9); //request data from slaves
     
     if (data.length() > 0) {
       //modules[i-1][0] = data.substring(0, 4).toInt(); //update id
-      modules[i-1][1] = data.substring(4, 5).toInt(); //update switch state
+      sys_info.modules[i-1][1] = data.substring(4, 5).toInt(); //update switch state
       current = data.substring(5, 9).toInt(); //update current
 
-      
-      int hkState = Homekit.getState((uint8_t)i, (uint8_t)modules[i-1][0]);
+      int hkState = Homekit.getState((uint8_t)i, (uint8_t)sys_info.modules[i-1][0]);
 
-      if (Homekit.getTriggerState((uint8_t)i, (uint8_t)modules[i-1][0])) { //if homekit event is triggere
+      if (Homekit.getTriggerState((uint8_t)i, (uint8_t)sys_info.modules[i-1][0])) { //if homekit event is triggere
         if (hkState) turnSwitchOn(i);
         else turnSwitchOff(i);
       } else {
-        if (hkState != modules[i-1][1]) { //if homekit state isn't equal as module's state
-          Homekit.setState((uint8_t)i, (uint8_t)modules[i-1][0], (uint8_t)modules[i-1][1]); //set homekit state forcibly
+        if (hkState != sys_info.modules[i-1][1]) { //if homekit state isn't equal as module's state
+          Homekit.setState((uint8_t)i, (uint8_t)sys_info.modules[i-1][0], (uint8_t)sys_info.modules[i-1][1]); //set homekit state forcibly
         }
       }
 
-      if (max(current - modules[i-1][2] - 10, 0) > 0) lastPlugAddr = i; //current rises in a big ratio
+      if (max(current - sys_info.modules[i-1][2] - 10, 0) > 0) sys_info.last_plugged = i; //current rises in a big ratio
 
-      modules[i-1][2] = current;
-      newSysCurrent += modules[i-1][2];
-    } else {
-      //Slave doesn not send any data, do checking
-      //cleanDumpedModulesData(i);
+      sys_info.modules[i-1][2] = current;
+      newSysCurrent += current;
     }
 
     delay(70);
   }
 
-  sysCurrent = newSysCurrent; //update system current
+  sys_info.all_current = newSysCurrent; //update system current
 }
 
 void cleanDumpedModulesData(int addr) {
-  modules[addr - 1][0] = 0;
-  modules[addr - 1][1] = 0;
-  modules[addr - 1][2] = 0;
+  sys_info.modules[addr - 1][0] = 0;
+  sys_info.modules[addr - 1][1] = 0;
+  sys_info.modules[addr - 1][2] = 0;
 }
 
 String receiveMsg(int addr, int mlength) {

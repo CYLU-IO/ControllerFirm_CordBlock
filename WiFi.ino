@@ -21,7 +21,7 @@ bool isWifiConncInfoFilled() {
   return (sizeof(wifi_setting.ssid) * sizeof(wifi_setting.password) > 0) ? true : false;
 }
 
-bool checkWiFi() {
+bool checkWiFiConnc() {
   bool _running =  (WiFi.status() == 3) ? HIGH : LOW;
 
   digitalWrite(WIFI_STATE_PIN, _running);

@@ -44,34 +44,31 @@ void mqttListerner(char* topic, byte* payload, unsigned int length) {
       case 1: //act on slave's power state
         if (data) sendCmd(searchAddrById(id), "6");
         else sendCmd(searchAddrById(id), "5");
-        
+
         break;
 
       case 2: //change emergency cutdown order
-        
+
         break;
     }
   }
 }
 
 void mqttLoop() {
-  if (!checkWiFi()) wifiInit();
+  if (!checkWiFiConnc()) wifiInit();
 
   StaticJsonDocument<256> json;
   bool empty = true;
   char buf[256];
 
-  for (int i = 1; i < UNSET_ADDR; i++) {
-    if (modules[i][0] != 0) {
-      JsonArray slaveData = json.createNestedArray(int2str(modules[i][0], 4));
-      JsonObject data = slaveData.createNestedObject();
+  for (int i = 1; i < sys_info.num_modules; i++) {
+    JsonArray slaveData = json.createNestedArray(int2str(sys_info.modules[i][0], 4));
+    JsonObject data = slaveData.createNestedObject();
 
-      data["state"] = modules[i][1];
-      data["priority"] = modules[i][2];
-      data["current"] = modules[i][3];
+    data["state"] = sys_info.modules[i][1];
+    data["current"] = sys_info.modules[i][2];
 
-      empty = false;
-    }
+    empty = false;
   }
 
   if (!empty) {
