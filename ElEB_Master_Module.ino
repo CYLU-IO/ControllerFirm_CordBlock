@@ -13,7 +13,10 @@
 #define UNSET_ADDR 51
 #define MAX_MODULES 50
 #define MAX_CURRENT 500
+#define LONG_PRESS_TIME 10000
 
+#define RST_PIN 2
+#define BUTTON_PIN 3
 #define WIFI_STATE_PIN 7
 #define MODULES_CONNC_STATE_PIN 9
 
@@ -27,8 +30,6 @@ typedef struct {
 typedef struct {
   char serial_number[12];
   char name[32];
-  char code[10];
-  char setupId[4];
   boolean initialized;
 } Accessory_Info;
 
@@ -70,30 +71,29 @@ void setup() {
   if (!acc_info.initialized) { //Start Accessory Initialization
     serialNumGenerator(acc_info.serial_number, "TW0", "1", "3", 7);
     strcpy(acc_info.name, "TLEBV01TWA");
-    strcpy(acc_info.code, "123-21-123");
-    strcpy(acc_info.setupId, "CY1U");
     acc_info.initialized = true;
     //acc_info_flash.write(acc_info);
   }
 
   wifi_setting.ssid = "Edwin's Room";
   wifi_setting.password = "Edw23190";
-
-  //wifiSSID = "network";
-  //wifiPass = "nkuste215@1";
-  //wifiSSID = "Cylu.iPhone.12";
-  //wifiPass = "Hello123";
-
+  
   serialInit();
-  //while(!Serial);
+  while(!Serial);
 
   pinInit();
+  resetToFactoryDetect();
+  
   i2cInit();
 
   wifiInit();
   //mqttInit();
   clearSerial1();
   moduleReconncTrial();
+
+  /*** HOMEKIT INIT ***/
+  Serial.print(F("[Homekit] Initialize HAP: "));
+  Serial.println(Homekit.init());
 
   //mqttThread->onRun(mqttLoop);
   //mqttThread->setInterval(3000);
@@ -115,9 +115,38 @@ void loop() {
 }
 
 void pinInit() {
+  digitalWrite(RST_PIN, HIGH);
+
   pinMode(MODULES_CONNC_STATE_PIN, OUTPUT);
   pinMode(WIFI_STATE_PIN, OUTPUT);
+  pinMode(RST_PIN, OUTPUT);
+  pinMode(BUTTON_PIN, INPUT);
 
   digitalWrite(MODULES_CONNC_STATE_PIN, LOW);
   digitalWrite(WIFI_STATE_PIN, LOW);
+}
+
+void resetToFactoryDetect() {
+  if (digitalRead(BUTTON_PIN) == LOW) {
+    unsigned long pressedTime = millis();
+
+    digitalWrite(WIFI_STATE_PIN, HIGH);
+    digitalWrite(MODULES_CONNC_STATE_PIN, HIGH);
+
+    while (digitalRead(BUTTON_PIN) == LOW) {
+      long pressDuration = millis() - pressedTime;
+
+      if (pressDuration > LONG_PRESS_TIME) {
+        //Start factory resetting
+        Serial.println("Reset to factory...");
+        delay(1000);
+      }
+    }
+  }
+
+  //blinkLED(3);
+}
+
+void resetFunc() {
+  digitalWrite(RST_PIN, LOW);
 }

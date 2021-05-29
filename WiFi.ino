@@ -26,5 +26,12 @@ bool checkWiFiConnc() {
 
   digitalWrite(WIFI_STATE_PIN, _running);
 
+  if (WiFi.status() != 3) Serial.println(WiFi.status());
+
+  if (!_running && (WiFi.status() == 255 || WiFi.status() == 0)) {
+    Serial.print("System Crashed");
+    resetFunc();
+  }
+
   return _running;
 }
