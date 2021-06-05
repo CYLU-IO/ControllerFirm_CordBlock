@@ -18,7 +18,6 @@ void collectI2CData() {
     data = receiveMsg(i, 9); //request data from slaves
 
     if (data.length() > 0) {
-      //modules[i-1][0] = data.substring(0, 4).toInt(); //update id
       sys_info.modules[i - 1][1] = data.substring(4, 5).toInt(); //update switch state
       current = data.substring(5, 9).toInt(); //update current
 
@@ -39,7 +38,7 @@ void collectI2CData() {
       newSysCurrent += current;
     }
 
-    delay(70);
+    delay(50);
   }
 
   sys_info.all_current = newSysCurrent; //update system current

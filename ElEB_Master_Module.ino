@@ -1,7 +1,7 @@
 #include <Wire.h>
+#include <CRC32.h>
 #include <Thread.h>
 #include <WiFiNINA.h>
-#include <ArduinoBLE.h>
 #include <ArduinoJson.h>
 #include <PubSubClient.h>
 #include <FlashStorage.h>
@@ -37,11 +37,11 @@ typedef struct {
   int all_current;
   int last_plugged;
   int num_modules;
-  int modules[5][3]; //slave address[id][switchState][current]
+  int modules[20][3]; //slave address[id][switchState][current]
 } System_Info;
 
 typedef struct {
-  int importances[50];
+  int importances[20];
   bool advancedSMF;
 } Smart_Modularized_Fuse_Info;
 
@@ -77,38 +77,40 @@ void setup() {
 
   wifi_setting.ssid = "Edwin's Room";
   wifi_setting.password = "Edw23190";
-  
+
   serialInit();
-  while(!Serial);
+  while (!Serial);
 
   pinInit();
   resetToFactoryDetect();
-  
+
   i2cInit();
 
   wifiInit();
   //mqttInit();
-  clearSerial1();
-  moduleReconncTrial();
 
   /*** HOMEKIT INIT ***/
   Serial.print(F("[Homekit] Initialize HAP: "));
   Serial.println(Homekit.init());
+
+  clearSerial(Serial1);
+  moduleReconncTrial();
 
   //mqttThread->onRun(mqttLoop);
   //mqttThread->setInterval(3000);
 
   //smfThread->onRun(smfLoop);
   //smfThread->setInterval(100);
+  
 }
 
 void loop() {
   //threadControl.run();
 
   checkWiFiConnc();
-  serialSignalProcess();
+  receiveSerial();
   collectI2CData();
-  checkSysCurrent();
+  //checkSysCurrent();
 
   //client.loop();
   delay(1);
@@ -116,6 +118,7 @@ void loop() {
 
 void pinInit() {
   digitalWrite(RST_PIN, HIGH);
+  digitalWrite(BUTTON_PIN, HIGH);
 
   pinMode(MODULES_CONNC_STATE_PIN, OUTPUT);
   pinMode(WIFI_STATE_PIN, OUTPUT);

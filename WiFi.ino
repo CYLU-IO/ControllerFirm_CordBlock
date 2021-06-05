@@ -30,7 +30,7 @@ bool checkWiFiConnc() {
 
   if (!_running && (WiFi.status() == 255 || WiFi.status() == 0)) {
     Serial.print("System Crashed");
-    resetFunc();
+    //resetFunc();
   }
 
   return _running;
