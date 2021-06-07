@@ -42,8 +42,8 @@ void mqttListerner(char* topic, byte* payload, unsigned int length) {
 
     switch (type) {
       case 1: //act on slave's power state
-        if (data) sendCmd(searchAddrById(id), "6");
-        else sendCmd(searchAddrById(id), "5");
+        //if (data) sendCmd(searchAddrById(id), "6");
+        //else sendCmd(searchAddrById(id), "5");
 
         break;
 

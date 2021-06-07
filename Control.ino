@@ -1,8 +1,38 @@
+void homekitLoop() {
+  if (!sys_status.module_initialized) return;
+
+  for (uint8_t i = 0; i < sys_info.num_modules; i++) {
+    int targetedAddr = i + 1;
+    int mid = sys_info.modules[i][0];
+    int mSwitchState = sys_info.modules[i][1];
+    int hkState = Homekit.getServiceValue(i, mid);
+
+    if (Homekit.getServiceTriggered(i, mid)) { //triggered, update module
+      hkState = Homekit.getServiceValue(i, mid);
+      
+      if (hkState) {
+        Serial.println("[HOMEKIT] Switch turn ON");
+        turnSwitchOn(targetedAddr);
+      }
+      else {
+        Serial.println("[HOMEKIT] Switch turn OFF");
+        turnSwitchOff(targetedAddr);
+      }
+
+      sys_info.modules[i][1] = hkState;
+    } else {
+      if (hkState != mSwitchState) Homekit.setServiceValue(i, mid, mSwitchState); //set homekit state forcibly
+    }
+  }
+}
+
 void turnSwitchOn(int addr) {
-  sendCmd(addr, "1");
+  char p[1] = {addr};
+  sendDoModule(Serial1, DO_TURN_ON, p, sizeof(p));
 }
 void turnSwitchOff(int addr) {
-  sendCmd(addr, "2");
+  char p[1] = {addr};
+  sendDoModule(Serial1, DO_TURN_OFF, p, sizeof(p));
 }
 
 void checkSysCurrent() {

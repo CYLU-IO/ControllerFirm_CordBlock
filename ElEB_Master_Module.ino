@@ -20,40 +20,59 @@
 #define WIFI_STATE_PIN 7
 #define MODULES_CONNC_STATE_PIN 9
 
-typedef struct {
+/*** SERIAL ***/
+#define CMD_FAIL            0x11
+#define CMD_EOF             0x20
+#define CMD_REQ_ADR         0x41 //'A'
+#define CMD_LOAD_MODULE     0x42 //'B'
+#define CMD_CONFIRM_RECEIVE 0x43 //'C'
+#define CMD_DO_MODULE       0x44 //'D'
+#define CMD_HI              0x48 //'H'
+#define CMD_INIT_MODULE     0x49 //'I'
+#define CMD_LINK_MODULE     0x4C //'L'
+#define CMD_UPDATE_MASTER   0x55 //'U'
+#define CMD_START           0xFF
+
+/*** Module Actions ***/
+#define DO_TURN_ON          0x6E //'n'
+#define DO_TURN_OFF         0x66 //'f'
+
+/*** Characteristic Type ***/
+#define MODULE_SWITCH_STATE 0x61 //'a' 
+#define MODULE_CURRENT      0x62 //'b'
+
+struct WiFi_Setting {
   char* ssid;
   char* user;
   char* password;
   int type;
-} WiFi_Setting;
+} wifi_setting;
 
-typedef struct {
+struct Accessory_Info {
   char serial_number[12];
   char name[32];
   boolean initialized;
-} Accessory_Info;
+} acc_info;
 
-typedef struct {
+struct System_Info {
   int all_current;
   int last_plugged;
   int num_modules;
   int modules[20][3]; //slave address[id][switchState][current]
-} System_Info;
+} sys_info;
 
-typedef struct {
+struct Smart_Modularized_Fuse_Info {
   int importances[20];
   bool advancedSMF;
-} Smart_Modularized_Fuse_Info;
+} smf_info;
+
+struct System_Status {
+  bool module_initialized;
+} sys_status;
 
 /*** in-Flash Data ***/
 FlashStorage(acc_info_flash, Accessory_Info);
 FlashStorage(smf_info_flash, Smart_Modularized_Fuse_Info);
-
-/*** Global Data ***/
-WiFi_Setting wifi_setting;
-Accessory_Info acc_info;
-System_Info sys_info;
-Smart_Modularized_Fuse_Info smf_info;
 
 /*** ＭQTT ***/
 WiFiClient mqttClient;
@@ -79,21 +98,18 @@ void setup() {
   wifi_setting.password = "Edw23190";
 
   serialInit();
-  while (!Serial);
+  //while (!Serial);
 
   pinInit();
   resetToFactoryDetect();
-
-  i2cInit();
 
   wifiInit();
   //mqttInit();
 
   /*** HOMEKIT INIT ***/
-  Serial.print(F("[Homekit] Initialize HAP: "));
+  Serial.print(F("[HOMEKIT] Initialize HAP: "));
   Serial.println(Homekit.init());
 
-  clearSerial(Serial1);
   moduleReconncTrial();
 
   //mqttThread->onRun(mqttLoop);
@@ -101,7 +117,7 @@ void setup() {
 
   //smfThread->onRun(smfLoop);
   //smfThread->setInterval(100);
-  
+
 }
 
 void loop() {
@@ -109,7 +125,7 @@ void loop() {
 
   checkWiFiConnc();
   receiveSerial();
-  collectI2CData();
+  homekitLoop();
   //checkSysCurrent();
 
   //client.loop();

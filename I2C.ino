@@ -1,4 +1,4 @@
-TwoWire i2cWire(&sercom1, 11, 13);
+/*TwoWire i2cWire(&sercom1, 11, 13);
 
 void i2cInit() {
   i2cWire.begin();
@@ -20,7 +20,7 @@ void collectI2CData() {
     if (data.length() > 0) {
       sys_info.modules[i - 1][1] = data.substring(4, 5).toInt(); //update switch state
       current = data.substring(5, 9).toInt(); //update current
-
+      Serial.println(i);
       int hkState = Homekit.getServiceValue((uint8_t)i - 1, (uint8_t)sys_info.modules[i - 1][0]);
 
       if (Homekit.getServiceTriggered((uint8_t)i - 1, (uint8_t)sys_info.modules[i - 1][0])) { //if homekit event is triggere
@@ -72,4 +72,4 @@ int sendCmd(int addr, String rawCmd) {
   free(buf);
 
   return i2cWire.endTransmission();
-}
+}*/
