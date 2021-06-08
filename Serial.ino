@@ -33,8 +33,9 @@ void receiveSerial() {
             int index = data["addr"].as<int>() - 1;
             const char* name = data["name"].as<const char*>();
 
-            if (index + 1 == updateNumModule) {
+            if (index + 1 == updateNumModule) { //first module arrives
               sys_status.module_initialized = false;
+              digitalWrite(MODULES_CONNC_STATE_PIN, LOW);
 
               if (sys_info.num_modules > 0) {
                 Serial.print(F("[HOMEKIT] Delete previous accessory: "));
@@ -54,7 +55,9 @@ void receiveSerial() {
             Serial.print("Name: "); Serial.println(name);
 
             if (index == 0) {
-              for (int i = updateNumModule - 1; i >= 0; i--) {
+              sys_info.num_modules = updateNumModule;
+              
+              for (int i = 0; i < updateNumModule; i++) {
                 Serial.print(F("[HOMEKIT] Add service: "));
                 Serial.println(Homekit.addService(i,
                                                   sys_info.modules[i][0],
@@ -65,9 +68,11 @@ void receiveSerial() {
               Serial.print(F("[HOMEKIT] Begin HAP service: ")); Serial.println(Homekit.begin());
               Serial.print(F("[UART] Total modules: ")); Serial.println(updateNumModule);
 
-              sys_info.num_modules = updateNumModule;
-              sendCmd(Serial1, CMD_INIT_MODULE); //pass to tell modules start I2C service
-              digitalWrite(MODULES_CONNC_STATE_PIN, HIGH); //finish connection
+              char *p = (char*)malloc(updateNumModule * sizeof(char));
+              for (int i = 0; i < updateNumModule; i++) p[i] = i + 1;
+              sendCmd(Serial1, CMD_INIT_MODULE, p, updateNumModule); //pass to tell modules start I2C service
+              
+              digitalWrite(MODULES_CONNC_STATE_PIN, HIGH);
               sys_status.module_initialized = true;
               Serial.println("[UART] Connection done");
             }
@@ -84,14 +89,14 @@ void receiveSerial() {
 
           switch (cmdBuf[1]) {
             case MODULE_SWITCH_STATE: {
-                Serial.print("[UART] Module state changes to ");
-                Serial.println(value);
+                Serial.print("[UART] Module state changes to "); Serial.println(value);
                 sys_info.modules[addr - 1][1] = value;
                 break;
               }
 
             case MODULE_CURRENT: {
-                //TODO
+                Serial.print("[UART] Module current changes to "); Serial.println(value);
+                sys_info.modules[addr - 1][2] = value;
                 break;
               }
           }
