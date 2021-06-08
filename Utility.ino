@@ -1,8 +1,11 @@
-uint8_t calcCRC(char* str) {
-  CRC32 crc;
-  for (int i = 0; i < strlen(str); i++) crc.update(str[i]);
+uint8_t calcCRC(char* str, int length) {
+  static CRC8 crc;
 
-  return crc.finalize();
+  crc.reset();
+  crc.setPolynome(0x05);
+  crc.add((uint8_t*)str, length);
+  
+  return crc.getCRC();
 }
 
 int findNearZero() {

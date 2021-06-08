@@ -84,6 +84,7 @@ void receiveSerial() {
 
       case CMD_UPDATE_MASTER: {
           if (cmdLength < 3) return;
+          
           int addr = cmdBuf[0];
           int value = cmdBuf[2];
 
@@ -153,9 +154,9 @@ char receiveCmd(Stream &_serial) {
       buf_count++;
     }
 
-    char checksum = serialRead(_serial); //checksum, don't bother it yett
+    uint8_t checksum = serialRead(_serial); //checksum
 
-    if (serialRead(_serial) != CMD_EOF) return CMD_FAIL; //error
+    if (serialRead(_serial) != CMD_EOF && calcCRC(cmdBuf, cmdLength) != checksum) return CMD_FAIL; //error
 
     return cmd;
   }
@@ -171,7 +172,7 @@ void sendCmd(Stream &_serial, char cmd, char* payload, int length) {
   buf[1] = cmd; //cmd_byte
   buf[2] = length & 0xff; //data_length - low byte
   buf[3] = (length >> 8) & 0xff; //data_length - high byte
-  buf[4 + length] = (char)calcCRC(payload); //checksum
+  buf[4 + length] = calcCRC(payload, length); //checksum
   buf[5 + length] = CMD_EOF; //stop_byte
 
   for (int i = 0; i < length; i++) //load buf

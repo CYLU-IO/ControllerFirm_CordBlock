@@ -1,14 +1,10 @@
-#include <Wire.h>
-#include <CRC32.h>
-#include <Thread.h>
+#include <CRC.h>
+#include <CRC8.h>
 #include <WiFiNINA.h>
 #include <ArduinoJson.h>
 #include <PubSubClient.h>
 #include <FlashStorage.h>
 #include <ArduinoHomekit.h>
-#include <StaticThreadController.h>
-
-#include "wiring_private.h"
 
 #define UNSET_ADDR 51
 #define MAX_MODULES 50
@@ -78,11 +74,6 @@ FlashStorage(smf_info_flash, Smart_Modularized_Fuse_Info);
 WiFiClient mqttClient;
 PubSubClient client(mqttClient);
 
-/*** Thread Instances ***/
-Thread* mqttThread = new Thread();
-Thread* smfThread = new Thread();
-StaticThreadController<2> threadControl (mqttThread, smfThread);
-
 void setup() {
   acc_info = acc_info_flash.read();
   smf_info = smf_info_flash.read();
@@ -111,18 +102,9 @@ void setup() {
   Serial.println(Homekit.init());
 
   moduleReconncTrial();
-
-  //mqttThread->onRun(mqttLoop);
-  //mqttThread->setInterval(3000);
-
-  //smfThread->onRun(smfLoop);
-  //smfThread->setInterval(100);
-
 }
 
 void loop() {
-  //threadControl.run();
-
   checkWiFiConnc();
   receiveSerial();
   homekitLoop();

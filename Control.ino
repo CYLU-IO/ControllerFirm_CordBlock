@@ -9,7 +9,7 @@ void homekitLoop() {
 
     if (Homekit.getServiceTriggered(i, mid)) { //triggered, update module
       hkState = Homekit.getServiceValue(i, mid);
-      
+
       if (hkState) {
         Serial.println("[HOMEKIT] Switch turn ON");
         turnSwitchOn(targetedAddr);
@@ -21,7 +21,10 @@ void homekitLoop() {
 
       sys_info.modules[i][1] = hkState;
     } else {
-      if (hkState != mSwitchState) Homekit.setServiceValue(i, mid, mSwitchState); //set homekit state forcibly
+      if (hkState != mSwitchState) {
+        Serial.println("[HOMEKIT] Switch force change");
+        Homekit.setServiceValue(i, mid, mSwitchState); //set homekit state forcibly
+      }
     }
   }
 }
