@@ -1,13 +1,16 @@
 #include <CRC.h>
 #include <CRC8.h>
+#include <Wire.h>
 #include <WiFiNINA.h>
 #include <ArduinoJson.h>
 #include <PubSubClient.h>
 #include <FlashStorage.h>
 #include <ArduinoHomekit.h>
 
+#include "wiring_private.h"
+
 #define UNSET_ADDR 51
-#define MAX_MODULES 50
+#define MAX_MODULES 20
 #define MAX_CURRENT 500
 #define LONG_PRESS_TIME 10000
 
@@ -88,11 +91,13 @@ void setup() {
   wifi_setting.ssid = "Edwin's Room";
   wifi_setting.password = "Edw23190";
 
-  serialInit();
-  //while (!Serial);
-
   pinInit();
   resetToFactoryDetect();
+
+  i2cInit();
+  serialInit();
+  //while (!Serial);
+  moduleReconncTrial();
 
   wifiInit();
   //mqttInit();
@@ -100,8 +105,6 @@ void setup() {
   /*** HOMEKIT INIT ***/
   Serial.print(F("[HOMEKIT] Initialize HAP: "));
   Serial.println(Homekit.init());
-
-  moduleReconncTrial();
 }
 
 void loop() {

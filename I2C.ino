@@ -1,4 +1,4 @@
-/*TwoWire i2cWire(&sercom1, 11, 13);
+TwoWire i2cWire(&sercom1, 11, 13);
 
 void i2cInit() {
   i2cWire.begin();
@@ -7,69 +7,39 @@ void i2cInit() {
   pinPeripheral(13, PIO_SERCOM);
 }
 
-void collectI2CData() {
-  String data;
-  int newSysCurrent = 0;
-  int current = 0;
+void sendI2CCmd(TwoWire &_wire, char cmd, char* payload, int length) {
+  TwoWire* wire = &_wire;
+  char buf[5 + length]; //start, data_length(uint8), data, checksum, stop
 
-  for (int i = 1; i <= sys_info.num_modules; i++) {
-    if (sendCmd(i, "") != 0) continue;
+  buf[0] = CMD_START; //start_byte
+  buf[1] = cmd; //cmd_byte
+  buf[2] = length & 0xff; //data_length
+  buf[3 + length] = calcCRC(payload, length); //checksum
+  buf[4 + length] = CMD_EOF; //stop_byte
 
-    data = receiveMsg(i, 9); //request data from slaves
+  for (int i = 0; i < length; i++) //load buf
+    buf[3 + i] = payload[i];
 
-    if (data.length() > 0) {
-      sys_info.modules[i - 1][1] = data.substring(4, 5).toInt(); //update switch state
-      current = data.substring(5, 9).toInt(); //update current
-      Serial.println(i);
-      int hkState = Homekit.getServiceValue((uint8_t)i - 1, (uint8_t)sys_info.modules[i - 1][0]);
+  wire->beginTransmission(0x01);
+  wire->write(buf);
+  wire->endTransmission();
 
-      if (Homekit.getServiceTriggered((uint8_t)i - 1, (uint8_t)sys_info.modules[i - 1][0])) { //if homekit event is triggere
-        if (hkState) turnSwitchOn(i);
-        else turnSwitchOff(i);
-      } else {
-        if (hkState != sys_info.modules[i - 1][1]) { //if homekit state isn't equal as module's state
-          Homekit.setServiceValue((uint8_t)i - 1, (uint8_t)sys_info.modules[i - 1][0], (uint8_t)sys_info.modules[i - 1][1]); //set homekit state forcibly
-        }
-      }
-
-      if (max(current - sys_info.modules[i - 1][2] - 10, 0) > 0) sys_info.last_plugged = i; //current rises in a big ratio
-
-      sys_info.modules[i - 1][2] = current;
-      newSysCurrent += current;
-    }
-
-    delay(50);
-  }
-
-  sys_info.all_current = newSysCurrent; //update system current
+  /*for (int i = 0; i < sizeof(buf); i++)
+    wire->write(buf[i]);*/
 }
 
-void cleanDumpedModulesData(int addr) {
-  sys_info.modules[addr - 1][0] = 0;
-  sys_info.modules[addr - 1][1] = 0;
-  sys_info.modules[addr - 1][2] = 0;
+void sendI2CCmd(char cmd, char* payload, int length) {
+  sendI2CCmd(i2cWire, cmd, payload, length);
 }
 
-String receiveMsg(int addr, int mlength) {
-  String re = "";
+void sendDoModule(char act, char* target, int length) {
+  int l = 1 + length;
+  char *p = (char*)malloc(l * sizeof(char));
 
-  i2cWire.requestFrom(addr, mlength);
+  p[0] = act;
 
-  while (i2cWire.available()) {
-    char b = i2cWire.read();
-    re += b;
-  }
+  for (int i = 1; i < l; i++) p[i] = target[i - 1];
 
-  return re;
+  sendI2CCmd(CMD_DO_MODULE, p, l);
+  free(p);
 }
-
-int sendCmd(int addr, String rawCmd) {
-  char * buf = (char *) malloc (rawCmd.length());
-  rawCmd.toCharArray(buf, rawCmd.length() + 1);
-
-  i2cWire.beginTransmission(addr);
-  i2cWire.write(buf);
-  free(buf);
-
-  return i2cWire.endTransmission();
-}*/

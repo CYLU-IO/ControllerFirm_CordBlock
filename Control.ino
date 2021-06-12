@@ -31,11 +31,11 @@ void homekitLoop() {
 
 void turnSwitchOn(int addr) {
   char p[1] = {addr};
-  sendDoModule(Serial1, DO_TURN_ON, p, sizeof(p));
+  sendDoModule(DO_TURN_ON, p, sizeof(p));
 }
 void turnSwitchOff(int addr) {
   char p[1] = {addr};
-  sendDoModule(Serial1, DO_TURN_OFF, p, sizeof(p));
+  sendDoModule(DO_TURN_OFF, p, sizeof(p));
 }
 
 void checkSysCurrent() {
