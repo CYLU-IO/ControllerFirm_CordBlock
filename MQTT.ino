@@ -21,12 +21,13 @@ void mqttConnect() {
   if (client.connect(buf)) {
     Serial.println("OK");
     client.subscribe(MQTT_SUB_TOPIC);
-    free(buf);
   } else {
     Serial.print("failed, rc=");
     Serial.print(client.state());
     delay(2000);
   }
+
+  free(buf);
 }
 
 void mqttListerner(char* topic, byte* payload, unsigned int length) {

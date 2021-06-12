@@ -91,13 +91,12 @@ void setup() {
   wifi_setting.ssid = "Edwin's Room";
   wifi_setting.password = "Edw23190";
 
-  pinInit();
-  resetToFactoryDetect();
-
   i2cInit();
   serialInit();
   //while (!Serial);
-  moduleReconncTrial();
+
+  pinInit();
+  resetToFactoryDetect();
 
   wifiInit();
   //mqttInit();
@@ -105,6 +104,8 @@ void setup() {
   /*** HOMEKIT INIT ***/
   Serial.print(F("[HOMEKIT] Initialize HAP: "));
   Serial.println(Homekit.init());
+
+  moduleReconncTrial();
 }
 
 void loop() {

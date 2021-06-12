@@ -9,8 +9,6 @@ void serialInit() {
 
 
 void moduleReconncTrial() {
-  if (Serial1.available() > 0) return; //Slave may not be initialized
-
   sendAddress(Serial1);
 }
 
@@ -33,10 +31,11 @@ void receiveSerial() {
             int index = data["addr"].as<int>() - 1;
             const char* name = data["name"].as<const char*>();
 
+            digitalWrite(MODULES_CONNC_STATE_PIN, LOW);
+
             if (index + 1 == updateNumModule) { //first module arrives
               sys_status.module_initialized = false;
-              digitalWrite(MODULES_CONNC_STATE_PIN, LOW);
-
+          
               if (sys_info.num_modules > 0) {
                 Serial.print(F("[HOMEKIT] Delete previous accessory: "));
                 Serial.println(Homekit.deleateAccessory());
@@ -96,7 +95,7 @@ void receiveSerial() {
               }
 
             case MODULE_CURRENT: {
-                Serial.print("[UART] Module current changes to "); Serial.println(value);
+                //Serial.print("[UART] Module current changes to "); Serial.println(value);
                 sys_info.modules[addr - 1][2] = value;
                 break;
               }

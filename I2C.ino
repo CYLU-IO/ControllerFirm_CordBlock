@@ -23,9 +23,6 @@ void sendI2CCmd(TwoWire &_wire, char cmd, char* payload, int length) {
   wire->beginTransmission(0x01);
   wire->write(buf);
   wire->endTransmission();
-
-  /*for (int i = 0; i < sizeof(buf); i++)
-    wire->write(buf[i]);*/
 }
 
 void sendI2CCmd(char cmd, char* payload, int length) {
