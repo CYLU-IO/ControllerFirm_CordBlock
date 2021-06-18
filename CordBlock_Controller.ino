@@ -64,7 +64,7 @@ void setup() {
 
   button.setTapHandler(btnTap);
 
-  //SerialNina.begin(115200);
+  SerialNina.begin(115200);
   //while (!Serial);
 
   moduleReconncTrial();
@@ -72,9 +72,9 @@ void setup() {
 
 void loop() {
   //checkSysCurrent();
-  /*if (SerialNina.available()) {
+  if (SerialNina.available()) {
     Serial.write(SerialNina.read());
-  }*/
+  }
 
   receiveSerial();
   homekitLoop();
