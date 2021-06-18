@@ -1,44 +1,13 @@
 #include <CRC.h>
 #include <CRC8.h>
 #include <Wire.h>
-#include <WiFiNINA.h>
+#include <Button2.h>
 #include <ArduinoJson.h>
-#include <PubSubClient.h>
 #include <FlashStorage.h>
 #include <ArduinoHomekit.h>
 
+#include "firm_definitions.h"
 #include "wiring_private.h"
-
-#define UNSET_ADDR 51
-#define MAX_MODULES 20
-#define MAX_CURRENT 500
-#define LONG_PRESS_TIME 10000
-
-#define RST_PIN 2
-#define BUTTON_PIN 3
-#define WIFI_STATE_PIN 7
-#define MODULES_CONNC_STATE_PIN 9
-
-/*** SERIAL ***/
-#define CMD_FAIL            0x11
-#define CMD_EOF             0x20
-#define CMD_REQ_ADR         0x41 //'A'
-#define CMD_LOAD_MODULE     0x42 //'B'
-#define CMD_CONFIRM_RECEIVE 0x43 //'C'
-#define CMD_DO_MODULE       0x44 //'D'
-#define CMD_HI              0x48 //'H'
-#define CMD_INIT_MODULE     0x49 //'I'
-#define CMD_LINK_MODULE     0x4C //'L'
-#define CMD_UPDATE_MASTER   0x55 //'U'
-#define CMD_START           0xFF
-
-/*** Module Actions ***/
-#define DO_TURN_ON          0x6E //'n'
-#define DO_TURN_OFF         0x66 //'f'
-
-/*** Characteristic Type ***/
-#define MODULE_SWITCH_STATE 0x61 //'a' 
-#define MODULE_CURRENT      0x62 //'b'
 
 struct WiFi_Setting {
   char* ssid;
@@ -73,9 +42,7 @@ struct System_Status {
 FlashStorage(acc_info_flash, Accessory_Info);
 FlashStorage(smf_info_flash, Smart_Modularized_Fuse_Info);
 
-/*** ＭQTT ***/
-WiFiClient mqttClient;
-PubSubClient client(mqttClient);
+Button2 button = Button2(BUTTON_PIN);
 
 void setup() {
   acc_info = acc_info_flash.read();
@@ -83,39 +50,40 @@ void setup() {
 
   if (!acc_info.initialized) { //Start Accessory Initialization
     serialNumGenerator(acc_info.serial_number, "TW0", "1", "3", 7);
-    strcpy(acc_info.name, "TLEBV01TWA");
+    strcpy(acc_info.name, "CordBlock");
     acc_info.initialized = true;
     //acc_info_flash.write(acc_info);
   }
 
-  wifi_setting.ssid = "Edwin's Room";
-  wifi_setting.password = "Edw23190";
-
   i2cInit();
   serialInit();
-  //while (!Serial);
+  Homekit.init();
 
   pinInit();
   resetToFactoryDetect();
 
-  wifiInit();
-  //mqttInit();
+  button.setTapHandler(btnTap);
 
-  /*** HOMEKIT INIT ***/
-  Serial.print(F("[HOMEKIT] Initialize HAP: "));
-  Serial.println(Homekit.init());
+  //SerialNina.begin(115200);
+  //while (!Serial);
 
   moduleReconncTrial();
 }
 
 void loop() {
-  checkWiFiConnc();
+  //checkSysCurrent();
+  /*if (SerialNina.available()) {
+    Serial.write(SerialNina.read());
+  }*/
+
   receiveSerial();
   homekitLoop();
-  //checkSysCurrent();
 
-  //client.loop();
-  delay(1);
+  button.loop();
+}
+
+void btnTap(Button2& btn) {
+  Homekit.resetToFactory();
 }
 
 void pinInit() {
@@ -142,14 +110,12 @@ void resetToFactoryDetect() {
       long pressDuration = millis() - pressedTime;
 
       if (pressDuration > LONG_PRESS_TIME) {
-        //Start factory resetting
-        Serial.println("Reset to factory...");
-        delay(1000);
+        digitalWrite(WIFI_STATE_PIN, LOW);
+        Homekit.resetToFactory();
+        resetFunc();
       }
     }
   }
-
-  //blinkLED(3);
 }
 
 void resetFunc() {

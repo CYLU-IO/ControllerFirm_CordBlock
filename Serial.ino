@@ -35,7 +35,7 @@ void receiveSerial() {
 
             if (index + 1 == updateNumModule) { //first module arrives
               sys_status.module_initialized = false;
-          
+
               if (sys_info.num_modules > 0) {
                 Serial.print(F("[HOMEKIT] Delete previous accessory: "));
                 Serial.println(Homekit.deleateAccessory());
@@ -43,6 +43,7 @@ void receiveSerial() {
 
               Serial.print(F("[HOMEKIT] Create accessory: "));
               Serial.println(Homekit.create((const char*)acc_info.serial_number, (const char*)acc_info.name));
+
             }
 
             sys_info.modules[index][0] = data["id"].as<int>(); //insert id into slaves table
@@ -55,7 +56,7 @@ void receiveSerial() {
 
             if (index == 0) {
               sys_info.num_modules = updateNumModule;
-              
+
               for (int i = 0; i < updateNumModule; i++) {
                 Serial.print(F("[HOMEKIT] Add service: "));
                 Serial.println(Homekit.addService(i,
@@ -70,7 +71,7 @@ void receiveSerial() {
               char *p = (char*)malloc(updateNumModule * sizeof(char));
               for (int i = 0; i < updateNumModule; i++) p[i] = i + 1;
               sendCmd(Serial1, CMD_INIT_MODULE, p, updateNumModule); //pass to tell modules start I2C service
-              
+
               digitalWrite(MODULES_CONNC_STATE_PIN, HIGH);
               sys_status.module_initialized = true;
               Serial.println("[UART] Connection done");
@@ -83,7 +84,7 @@ void receiveSerial() {
 
       case CMD_UPDATE_MASTER: {
           if (cmdLength < 3) return;
-          
+
           int addr = cmdBuf[0];
           int value = cmdBuf[2];
 
@@ -91,6 +92,7 @@ void receiveSerial() {
             case MODULE_SWITCH_STATE: {
                 Serial.print("[UART] Module state changes to "); Serial.println(value);
                 sys_info.modules[addr - 1][1] = value;
+                Homekit.setServiceValue(addr - 1, sys_info.modules[addr - 1][0], value); //set homekit state forcibly
                 break;
               }
 
@@ -131,6 +133,64 @@ void sendDoModule(Stream &_serial, char act, char* target, int length) {
 /*** Util ***/
 char receiveCmd(Stream &_serial) {
   Stream* serial = &_serial;
+
+  static enum {
+    RC_NONE, RC_HEADER, RC_PAYLOAD, RC_CHECK
+  } state = RC_NONE;
+
+  static char cmd_byte;
+  static size_t buffer_pos;
+
+  switch (state) {
+    case RC_NONE: {
+        if (serial->available() < 1 || (uint8_t)serial->read() != CMD_START) break;
+
+        state = RC_HEADER;
+      }
+
+    case RC_HEADER: {
+        if (serial->available() < 3) break;
+
+        cmd_byte = serial->read();
+
+        cmdLength = serial->read();
+        cmdLength |= (uint16_t) serial->read() << 8;
+
+        buffer_pos = 0;
+
+        state = RC_PAYLOAD;
+      }
+
+    case RC_PAYLOAD: {
+        if (serial->available()) {
+          cmdBuf[buffer_pos++] = serial->read();
+        }
+
+        if (buffer_pos < cmdLength) break;
+
+        state = RC_CHECK;
+      }
+
+    case RC_CHECK: {
+        if (serial->available() < 2) break;
+
+        uint8_t checksum = serial->read(); //checksum
+
+        if (serial->read() != CMD_EOF) {
+          state = RC_NONE;
+          break;
+        }
+
+        state = RC_NONE;
+
+        return cmd_byte;
+      }
+  }
+
+  return CMD_FAIL;
+}
+/*char receiveCmd(Stream &_serial) {
+  Stream* serial = &_serial;
   uint8_t sb = serialRead(_serial);
 
   if (sb == CMD_START) {
@@ -161,7 +221,7 @@ char receiveCmd(Stream &_serial) {
   }
 
   return CMD_FAIL;
-}
+  }*/
 
 void sendCmd(Stream &_serial, char cmd, char* payload, int length) {
   Stream* serial = &_serial;

@@ -11,31 +11,27 @@ void homekitLoop() {
     int mSwitchState = sys_info.modules[i][1];
     int hkState = Homekit.getServiceValue(i, mid);
 
+    receiveSerial();
+
     if (Homekit.getServiceTriggered(i, mid)) { //triggered, update module
       hkState = Homekit.getServiceValue(i, mid);
       _cmd[_cmdLength * 2] = targetedAddr;
 
       if (hkState) {
+#if DEBUG
         Serial.println("[HOMEKIT] Switch turn ON");
+#endif
         _cmd[_cmdLength * 2 + 1] = DO_TURN_ON;
-
-        //turnSwitchOn(targetedAddr);
       }
       else {
+#if DEBUG
         Serial.println("[HOMEKIT] Switch turn OFF");
+#endif
         _cmd[_cmdLength * 2 + 1] = DO_TURN_OFF;
-
-        //turnSwitchOff(targetedAddr);
       }
 
       _cmdLength++;
       acted = true;
-      sys_info.modules[i][1] = hkState;
-    } else {
-      if (hkState != mSwitchState) {
-        Serial.println("[HOMEKIT] Switch force change");
-        Homekit.setServiceValue(i, mid, mSwitchState); //set homekit state forcibly
-      }
     }
   }
 
@@ -49,16 +45,15 @@ void homekitLoop() {
     sendI2CCmd(CMD_DO_MODULE, p, l);
     free(p);
   }
-
 }
 
 void turnSwitchOn(int addr) {
   char p[1] = {addr};
-  sendDoModule(DO_TURN_ON, p, sizeof(p));
+  sendDoModule(Serial1, DO_TURN_ON, p, sizeof(p));
 }
 void turnSwitchOff(int addr) {
   char p[1] = {addr};
-  sendDoModule(DO_TURN_OFF, p, sizeof(p));
+  sendDoModule(Serial1, DO_TURN_OFF, p, sizeof(p));
 }
 
 void checkSysCurrent() {
