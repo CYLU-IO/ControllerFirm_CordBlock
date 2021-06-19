@@ -1,9 +1,9 @@
 void homekitLoop() {
   if (!sys_status.module_initialized) return;
 
-  char _cmd[MAX_MODULES * 2]; //(addr, action) * MAX_MODULES
-  int _cmdLength = 0;
-  bool acted = false;
+  static char cmd[MAX_MODULES * 2]; //(addr, action) * MAX_MODULES
+  static int length = 0;
+  static bool acted = false;
 
   for (uint8_t i = 0; i < sys_info.num_modules; i++) {
     int targetedAddr = i + 1;
@@ -15,35 +15,42 @@ void homekitLoop() {
 
     if (Homekit.getServiceTriggered(i, mid)) { //triggered, update module
       hkState = Homekit.getServiceValue(i, mid);
-      _cmd[_cmdLength * 2] = targetedAddr;
+      cmd[length * 2] = targetedAddr;
 
       if (hkState) {
 #if DEBUG
         Serial.println("[HOMEKIT] Switch turn ON");
 #endif
-        _cmd[_cmdLength * 2 + 1] = DO_TURN_ON;
+        cmd[length * 2 + 1] = DO_TURN_ON;
       }
       else {
 #if DEBUG
         Serial.println("[HOMEKIT] Switch turn OFF");
 #endif
-        _cmd[_cmdLength * 2 + 1] = DO_TURN_OFF;
+        cmd[length * 2 + 1] = DO_TURN_OFF;
       }
 
-      _cmdLength++;
+      length++;
       acted = true;
     }
   }
 
-
   if (acted) {
-    int l = _cmdLength * 2;
+    int l = length * 2;
     char *p = (char*)malloc(l * sizeof(char));
 
-    for (int i = 0; i < l; i++) p[i] = _cmd[i];
+    for (int i = 0; i < l; i++) p[i] = cmd[i];
 
+#if ENABLE_I2C_CMD
     sendI2CCmd(CMD_DO_MODULE, p, l);
+#else
+    sendCmd(Serial1, CMD_DO_MODULE, p, l);
+#endif
+
     free(p);
+
+    acted = false;
+    length = 0;
   }
 }
 

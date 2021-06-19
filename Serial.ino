@@ -20,7 +20,9 @@ void receiveSerial() {
   static char buffer[96];
 
   if (Serial1.available()) {
-    switch (receiveCmd(Serial1, state, cmd, length, buffer_pos, buffer)) {
+    char c = receiveCmd(Serial1, state, cmd, length, buffer_pos, buffer);
+
+    switch (c) {
       case CMD_REQ_ADR: {
           sendAddress(Serial1);
           break;
@@ -39,6 +41,7 @@ void receiveSerial() {
             if (index + 1 == updateNumModule) { //first module arrives
               sys_status.module_initialized = false;
 
+#if ENABLE_HOMEKIT
               if (sys_info.num_modules > 0) {
                 Serial.print(F("[HOMEKIT] Delete previous accessory: "));
                 Serial.println(Homekit.deleateAccessory());
@@ -46,7 +49,7 @@ void receiveSerial() {
 
               Serial.print(F("[HOMEKIT] Create accessory: "));
               Serial.println(Homekit.create((const char*)acc_info.serial_number, (const char*)acc_info.name));
-
+#endif
             }
 
             sys_info.modules[index][0] = data["id"].as<int>(); //insert id into slaves table
@@ -60,6 +63,7 @@ void receiveSerial() {
             if (index == 0) {
               sys_info.num_modules = updateNumModule;
 
+#if ENABLE_HOMEKIT
               for (int i = 0; i < updateNumModule; i++) {
                 Serial.print(F("[HOMEKIT] Add service: "));
                 Serial.println(Homekit.addService(i,
@@ -69,6 +73,8 @@ void receiveSerial() {
               }
 
               Serial.print(F("[HOMEKIT] Begin HAP service: ")); Serial.println(Homekit.begin());
+#endif
+
               Serial.print(F("[UART] Total modules: ")); Serial.println(updateNumModule);
 
               char *p = (char*)malloc(updateNumModule * sizeof(char));
@@ -93,7 +99,10 @@ void receiveSerial() {
 
           switch (buffer[1]) {
             case MODULE_SWITCH_STATE: {
-                Serial.print("[UART] Module state changes to "); Serial.println(value);
+                Serial.print("[UART] Module "); 
+                Serial.print(addr);
+                Serial.print(" state changes to ");
+                Serial.println(value);
                 sys_info.modules[addr - 1][1] = value;
                 Homekit.setServiceValue(addr - 1, sys_info.modules[addr - 1][0], value); //set homekit state forcibly
                 break;
@@ -118,7 +127,10 @@ void sendAddress(Stream &_serial) {
   char p[1] = {0};
   clearSerial(Serial1);
   sendCmd(_serial, CMD_LOAD_MODULE, p, sizeof(p));
-  serial->println("Sending address");
+
+#if DEBUG
+  Serial.println("[UART] Sending address");
+#endif
 }
 
 void sendDoModule(Stream &_serial, char act, char* target, int length) {
@@ -140,8 +152,17 @@ char receiveCmd(Stream &_serial, CMD_STATE &state, char &cmd, int &length, int &
   switch (state) {
     case RC_NONE: {
         cmd = CMD_FAIL;
+        if (serial->available() < 1) break;
 
-        if (serial->available() < 1 || (uint8_t)serial->read() != CMD_START) break;
+        uint8_t start_byte = serial->read();
+
+        if (start_byte != CMD_START) {
+#if DEBUG
+          Serial.print("[UART] Incorrect start byte: ");
+          Serial.println(start_byte, HEX);
+#endif
+          break;
+        }
 
         state = RC_HEADER;
       }
@@ -153,11 +174,6 @@ char receiveCmd(Stream &_serial, CMD_STATE &state, char &cmd, int &length, int &
 
         length = serial->read();
         length |= (uint16_t) serial->read() << 8;
-
-#if DEBUG
-        Serial.print("[UART] Content length: ");
-        Serial.println(length);
-#endif
 
         buffer_pos = 0;
 
@@ -178,19 +194,18 @@ char receiveCmd(Stream &_serial, CMD_STATE &state, char &cmd, int &length, int &
         if (serial->available() < 2) break;
 
         uint8_t checksum = serial->read();
-
         uint8_t eof = serial->read();
+
+        state = RC_NONE;
 
         if (eof != CMD_EOF) {
 #if DEBUG
           Serial.print("[UART] ERROR: Unexpected EOF: ");
           Serial.println(eof, HEX);
 #endif
-          state = RC_NONE;
+
           break;
         }
-
-        state = RC_NONE;
 
         return cmd;
       }

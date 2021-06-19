@@ -19,7 +19,7 @@ void sendI2CCmd(TwoWire &_wire, char cmd, char* payload, int length) {
 
   for (int i = 0; i < length; i++) //load buf
     buf[3 + i] = payload[i];
-
+    
   wire->beginTransmission(0x01);
   wire->write(buf);
   wire->endTransmission();

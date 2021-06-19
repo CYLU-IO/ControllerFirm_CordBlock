@@ -42,8 +42,6 @@ struct System_Status {
 FlashStorage(acc_info_flash, Accessory_Info);
 FlashStorage(smf_info_flash, Smart_Modularized_Fuse_Info);
 
-Button2 button = Button2(BUTTON_PIN);
-
 void setup() {
   acc_info = acc_info_flash.read();
   smf_info = smf_info_flash.read();
@@ -55,35 +53,45 @@ void setup() {
     //acc_info_flash.write(acc_info);
   }
 
+#if ENABLE_I2C_CMD
   i2cInit();
+#endif
+
   serialInit();
+
+#if ENABLE_HOMEKIT
   Homekit.init();
+#endif
 
   pinInit();
   resetToFactoryDetect();
 
-  button.setTapHandler(btnTap);
-
-  SerialNina.begin(115200);
   //while (!Serial);
+
+  //SerialNina.begin(115200);
 
   moduleReconncTrial();
 }
 
 void loop() {
   //checkSysCurrent();
-  if (SerialNina.available()) {
-    Serial.write(SerialNina.read());
+
+  if (Serial.available()) {
+    if (Serial.read() == 82) {
+      Serial.println("[COM] Reset to factory");
+      Homekit.resetToFactory();
+    }
   }
 
+  //if (SerialNina.available()) {
+  //Serial.write(SerialNina.read());
+  //}
+
   receiveSerial();
+
+#if ENABLE_HOMEKIT
   homekitLoop();
-
-  button.loop();
-}
-
-void btnTap(Button2& btn) {
-  Homekit.resetToFactory();
+#endif
 }
 
 void pinInit() {

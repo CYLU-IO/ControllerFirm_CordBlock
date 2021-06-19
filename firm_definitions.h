@@ -4,7 +4,10 @@
 #define MAX_MODULES             20
 #define MAX_CURRENT             500
 #define LONG_PRESS_TIME         10000
+
 #define DEBUG                   1
+#define ENABLE_HOMEKIT          1
+#define ENABLE_I2C_CMD          0
 
 #define RST_PIN                 2
 #define BUTTON_PIN              3
