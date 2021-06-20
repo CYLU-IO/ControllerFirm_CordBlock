@@ -65,30 +65,37 @@ void setup() {
   pinInit();
   resetToFactoryDetect();
 
-  while (!Serial);
-  SerialNina.begin(115200);
+  //while (!Serial);
+  //SerialNina.begin(115200);
 
   moduleReconncTrial();
 }
 
 void loop() {
   //checkSysCurrent();
+  switch (WifiMgr.getStatus()) {
+    case 3:
+      digitalWrite(WIFI_STATE_PIN, HIGH);
+      break;
+
+    case 4:
+      CoreBridge.resetNetwork();
+      resetSAMD21();
+      break;
+
+    default:
+      digitalWrite(WIFI_STATE_PIN, LOW);
+      break;
+  }
 
   if (Serial.available()) { //for test only
     int c = Serial.read();
-    
-    if (c == 82) {
-      Serial.print("[COM] Reset to factory: ");
-      Serial.println(CoreBridge.resetToFactory());
-    }
 
-    if (c == 87) {
-       Serial.print("WifiMgr status: ");
-       Serial.println(WifiMgr.getStatus());
+    if (c == 87) { //W
     }
   }
 
-  if (SerialNina.available()) Serial.write(SerialNina.read());
+  //if (SerialNina.available()) Serial.write(SerialNina.read());
 
   receiveSerial();
 

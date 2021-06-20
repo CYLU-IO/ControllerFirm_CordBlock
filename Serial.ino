@@ -54,7 +54,7 @@ void receiveSerial() {
               sys_status.module_initialized = false;
 
 #if ENABLE_HOMEKIT
-              if (sys_info.num_modules > 0) {
+              if (Homekit.countAccessory() > 0) {
                 Serial.print(F("[HOMEKIT] Delete previous accessory: "));
                 Serial.println(Homekit.deleteAccessory());
               }

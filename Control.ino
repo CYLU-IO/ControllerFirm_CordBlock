@@ -96,13 +96,14 @@ void resetToFactoryDetect() {
 
       if (pressDuration > LONG_PRESS_TIME) {
         digitalWrite(WIFI_STATE_PIN, LOW);
+        
         CoreBridge.resetToFactory();
-        resetFunc();
+        resetSAMD21();
       }
     }
   }
 }
 
-void resetFunc() {
+void resetSAMD21() {
   digitalWrite(RST_PIN, LOW);
 }
