@@ -2,9 +2,9 @@
 #include <CRC8.h>
 #include <Wire.h>
 #include <Button2.h>
+#include <CoreBridge.h>
 #include <ArduinoJson.h>
 #include <FlashStorage.h>
-#include <ArduinoHomekit.h>
 
 #include "firm_definitions.h"
 #include "wiring_private.h"
@@ -42,6 +42,8 @@ struct System_Status {
 FlashStorage(acc_info_flash, Accessory_Info);
 FlashStorage(smf_info_flash, Smart_Modularized_Fuse_Info);
 
+Uart Serial3 (&sercom0, 5, 6, SERCOM_RX_PAD_1, UART_TX_PAD_0);
+
 void setup() {
   acc_info = acc_info_flash.read();
   smf_info = smf_info_flash.read();
@@ -58,17 +60,13 @@ void setup() {
 #endif
 
   serialInit();
-
-#if ENABLE_HOMEKIT
-  Homekit.init();
-#endif
+  CoreBridge.begin();
 
   pinInit();
   resetToFactoryDetect();
 
-  //while (!Serial);
-
-  //SerialNina.begin(115200);
+  while (!Serial);
+  SerialNina.begin(115200);
 
   moduleReconncTrial();
 }
@@ -76,16 +74,21 @@ void setup() {
 void loop() {
   //checkSysCurrent();
 
-  if (Serial.available()) {
-    if (Serial.read() == 82) {
-      Serial.println("[COM] Reset to factory");
-      Homekit.resetToFactory();
+  if (Serial.available()) { //for test only
+    int c = Serial.read();
+    
+    if (c == 82) {
+      Serial.print("[COM] Reset to factory: ");
+      Serial.println(CoreBridge.resetToFactory());
+    }
+
+    if (c == 87) {
+       Serial.print("WifiMgr status: ");
+       Serial.println(WifiMgr.getStatus());
     }
   }
 
-  //if (SerialNina.available()) {
-  //Serial.write(SerialNina.read());
-  //}
+  if (SerialNina.available()) Serial.write(SerialNina.read());
 
   receiveSerial();
 
@@ -107,25 +110,7 @@ void pinInit() {
   digitalWrite(WIFI_STATE_PIN, LOW);
 }
 
-void resetToFactoryDetect() {
-  if (digitalRead(BUTTON_PIN) == LOW) {
-    unsigned long pressedTime = millis();
-
-    digitalWrite(WIFI_STATE_PIN, HIGH);
-    digitalWrite(MODULES_CONNC_STATE_PIN, HIGH);
-
-    while (digitalRead(BUTTON_PIN) == LOW) {
-      long pressDuration = millis() - pressedTime;
-
-      if (pressDuration > LONG_PRESS_TIME) {
-        digitalWrite(WIFI_STATE_PIN, LOW);
-        Homekit.resetToFactory();
-        resetFunc();
-      }
-    }
-  }
-}
-
-void resetFunc() {
-  digitalWrite(RST_PIN, LOW);
+void SERCOM0_Handler()
+{
+  Serial3.IrqHandler();
 }

@@ -13,7 +13,7 @@ void homekitLoop() {
 
     receiveSerial();
 
-    if (Homekit.getServiceTriggered(i, mid)) { //triggered, update module
+    if (Homekit.readServiceTriggered(i, mid)) { //triggered, update module
       hkState = Homekit.getServiceValue(i, mid);
       cmd[length * 2] = targetedAddr;
 
@@ -82,4 +82,27 @@ void checkSysCurrent() {
       if (sys_info.last_plugged != 0) turnSwitchOff(sys_info.last_plugged); //cut the overloaded itself
     }
   }
+}
+
+void resetToFactoryDetect() {
+  if (digitalRead(BUTTON_PIN) == LOW) {
+    unsigned long pressedTime = millis();
+
+    digitalWrite(WIFI_STATE_PIN, HIGH);
+    digitalWrite(MODULES_CONNC_STATE_PIN, HIGH);
+
+    while (digitalRead(BUTTON_PIN) == LOW) {
+      long pressDuration = millis() - pressedTime;
+
+      if (pressDuration > LONG_PRESS_TIME) {
+        digitalWrite(WIFI_STATE_PIN, LOW);
+        CoreBridge.resetToFactory();
+        resetFunc();
+      }
+    }
+  }
+}
+
+void resetFunc() {
+  digitalWrite(RST_PIN, LOW);
 }

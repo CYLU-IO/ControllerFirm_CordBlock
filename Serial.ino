@@ -1,8 +1,20 @@
 StaticJsonDocument<96> data;
 
 void serialInit() {
+  pinPeripheral(5, PIO_SERCOM_ALT);
+  pinPeripheral(6, PIO_SERCOM_ALT);
+
+#if DEBUG
   Serial.begin(9600);
-  Serial1.begin(9600);
+#endif
+
+  Serial1.begin(9600); //RX: 5, TX: 6
+
+  /**
+     Serial 3 is used for boardcasting CMD to modules.
+     It is not allowed to receive CMD.
+  */
+  Serial3.begin(9600);
 }
 
 
@@ -44,11 +56,11 @@ void receiveSerial() {
 #if ENABLE_HOMEKIT
               if (sys_info.num_modules > 0) {
                 Serial.print(F("[HOMEKIT] Delete previous accessory: "));
-                Serial.println(Homekit.deleateAccessory());
+                Serial.println(Homekit.deleteAccessory());
               }
 
               Serial.print(F("[HOMEKIT] Create accessory: "));
-              Serial.println(Homekit.create((const char*)acc_info.serial_number, (const char*)acc_info.name));
+              Serial.println(Homekit.createAccessory((const char*)acc_info.serial_number, (const char*)acc_info.name));
 #endif
             }
 
@@ -72,7 +84,7 @@ void receiveSerial() {
                                                   name));
               }
 
-              Serial.print(F("[HOMEKIT] Begin HAP service: ")); Serial.println(Homekit.begin());
+              Serial.print(F("[HOMEKIT] Begin HAP service: ")); Serial.println(Homekit.beginAccessory());
 #endif
 
               Serial.print(F("[UART] Total modules: ")); Serial.println(updateNumModule);
@@ -99,7 +111,7 @@ void receiveSerial() {
 
           switch (buffer[1]) {
             case MODULE_SWITCH_STATE: {
-                Serial.print("[UART] Module "); 
+                Serial.print("[UART] Module ");
                 Serial.print(addr);
                 Serial.print(" state changes to ");
                 Serial.println(value);

@@ -1,3 +1,4 @@
+#if ENABLE_I2C_CMD
 TwoWire i2cWire(&sercom1, 11, 13);
 
 void i2cInit() {
@@ -19,7 +20,7 @@ void sendI2CCmd(TwoWire &_wire, char cmd, char* payload, int length) {
 
   for (int i = 0; i < length; i++) //load buf
     buf[3 + i] = payload[i];
-    
+
   wire->beginTransmission(0x01);
   wire->write(buf);
   wire->endTransmission();
@@ -40,3 +41,4 @@ void sendDoModule(char act, char* target, int length) {
   sendI2CCmd(CMD_DO_MODULE, p, l);
   free(p);
 }
+#endif

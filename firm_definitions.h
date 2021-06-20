@@ -11,7 +11,7 @@
 
 #define RST_PIN                 2
 #define BUTTON_PIN              3
-#define WIFI_STATE_PIN 7
+#define WIFI_STATE_PIN          7
 #define MODULES_CONNC_STATE_PIN 9
 
 /*** SERIAL ***/
