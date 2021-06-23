@@ -41,10 +41,10 @@ void homekitLoop() {
 
     for (int i = 0; i < l; i++) p[i] = cmd[i];
 
-#if ENABLE_I2C_CMD
+#if ENABLE_I2C
     sendI2CCmd(CMD_DO_MODULE, p, l);
 #else
-    sendCmd(Serial1, CMD_DO_MODULE, p, l);
+    sendCmd(Serial3, CMD_DO_MODULE, p, l);
 #endif
 
     free(p);
@@ -56,11 +56,11 @@ void homekitLoop() {
 
 void turnSwitchOn(int addr) {
   char p[1] = {addr};
-  sendDoModule(Serial1, DO_TURN_ON, p, sizeof(p));
+  sendDoModule(Serial3, DO_TURN_ON, p, sizeof(p));
 }
 void turnSwitchOff(int addr) {
   char p[1] = {addr};
-  sendDoModule(Serial1, DO_TURN_OFF, p, sizeof(p));
+  sendDoModule(Serial3, DO_TURN_OFF, p, sizeof(p));
 }
 
 void checkSysCurrent() {
@@ -89,7 +89,7 @@ void resetToFactoryDetect() {
     unsigned long pressedTime = millis();
 
     digitalWrite(WIFI_STATE_PIN, HIGH);
-    digitalWrite(MODULES_CONNC_STATE_PIN, HIGH);
+    digitalWrite(MODULES_STATE_PIN, HIGH);
 
     while (digitalRead(BUTTON_PIN) == LOW) {
       long pressDuration = millis() - pressedTime;

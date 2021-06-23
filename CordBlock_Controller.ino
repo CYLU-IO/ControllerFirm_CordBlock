@@ -9,17 +9,10 @@
 #include "firm_definitions.h"
 #include "wiring_private.h"
 
-struct WiFi_Setting {
-  char* ssid;
-  char* user;
-  char* password;
-  int type;
-} wifi_setting;
-
 struct Accessory_Info {
   char serial_number[12];
   char name[32];
-  boolean initialized;
+  bool initialized;
 } acc_info;
 
 struct System_Info {
@@ -30,7 +23,7 @@ struct System_Info {
 } sys_info;
 
 struct Smart_Modularized_Fuse_Info {
-  int importances[20];
+  int  importances[20];
   bool advancedSMF;
 } smf_info;
 
@@ -55,7 +48,7 @@ void setup() {
     //acc_info_flash.write(acc_info);
   }
 
-#if ENABLE_I2C_CMD
+#if ENABLE_I2C
   i2cInit();
 #endif
 
@@ -108,12 +101,12 @@ void pinInit() {
   digitalWrite(RST_PIN, HIGH);
   digitalWrite(BUTTON_PIN, HIGH);
 
-  pinMode(MODULES_CONNC_STATE_PIN, OUTPUT);
+  pinMode(MODULES_STATE_PIN, OUTPUT);
   pinMode(WIFI_STATE_PIN, OUTPUT);
   pinMode(RST_PIN, OUTPUT);
   pinMode(BUTTON_PIN, INPUT);
 
-  digitalWrite(MODULES_CONNC_STATE_PIN, LOW);
+  digitalWrite(MODULES_STATE_PIN, LOW);
   digitalWrite(WIFI_STATE_PIN, LOW);
 }
 

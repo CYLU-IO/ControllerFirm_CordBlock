@@ -8,13 +8,13 @@ void serialInit() {
   Serial.begin(9600);
 #endif
 
-  Serial1.begin(9600); //RX: 5, TX: 6
+  Serial1.begin(9600);
 
   /**
      Serial 3 is used for boardcasting CMD to modules.
      It is not allowed to receive CMD.
   */
-  Serial3.begin(9600);
+  Serial3.begin(9600); //RX: 5, TX: 6
 }
 
 
@@ -48,7 +48,7 @@ void receiveSerial() {
             int index = data["addr"].as<int>() - 1;
             const char* name = data["name"].as<const char*>();
 
-            digitalWrite(MODULES_CONNC_STATE_PIN, LOW);
+            digitalWrite(MODULES_STATE_PIN, LOW);
 
             if (index + 1 == updateNumModule) { //first module arrives
               sys_status.module_initialized = false;
@@ -91,9 +91,9 @@ void receiveSerial() {
 
               char *p = (char*)malloc(updateNumModule * sizeof(char));
               for (int i = 0; i < updateNumModule; i++) p[i] = i + 1;
-              sendCmd(Serial1, CMD_INIT_MODULE, p, updateNumModule); //pass to tell modules start I2C service
+              sendCmd(Serial3, CMD_INIT_MODULE, p, updateNumModule); //using boardcast
 
-              digitalWrite(MODULES_CONNC_STATE_PIN, HIGH);
+              digitalWrite(MODULES_STATE_PIN, HIGH);
               sys_status.module_initialized = true;
               Serial.println("[UART] Connection done");
             }
@@ -111,17 +111,22 @@ void receiveSerial() {
 
           switch (buffer[1]) {
             case MODULE_SWITCH_STATE: {
+#if DEBUG
                 Serial.print("[UART] Module ");
                 Serial.print(addr);
                 Serial.print(" state changes to ");
                 Serial.println(value);
+#endif
                 sys_info.modules[addr - 1][1] = value;
                 Homekit.setServiceValue(addr - 1, sys_info.modules[addr - 1][0], value); //set homekit state forcibly
                 break;
               }
 
             case MODULE_CURRENT: {
-                //Serial.print("[UART] Module current changes to "); Serial.println(value);
+                /*Serial.print("[UART] Module ");
+                  Serial.print(addr);
+                  Serial.print(" current updates to ");
+                  Serial.println(value);*/
                 sys_info.modules[addr - 1][2] = value;
                 break;
               }
