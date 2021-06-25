@@ -2,8 +2,9 @@
 #define FIRM_DEFINITION_H
 
 #define MAX_MODULES             20
-#define MAX_CURRENT             500
+#define MAX_CURRENT             1500
 #define LONG_PRESS_TIME         10000
+#define PERIODID_CURRENT_TIME   300000 
 
 #define DEBUG                   1
 #define ENABLE_HOMEKIT          1

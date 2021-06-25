@@ -92,6 +92,8 @@ void receiveSerial() {
               char *p = (char*)malloc(updateNumModule * sizeof(char));
               for (int i = 0; i < updateNumModule; i++) p[i] = i + 1;
               sendCmd(Serial3, CMD_INIT_MODULE, p, updateNumModule); //using boardcast
+              
+              sendReqData(Serial3, MODULE_CURRENT);
 
               digitalWrite(MODULES_STATE_PIN, HIGH);
               sys_status.module_initialized = true;
@@ -123,11 +125,25 @@ void receiveSerial() {
               }
 
             case MODULE_CURRENT: {
-                /*Serial.print("[UART] Module ");
-                  Serial.print(addr);
-                  Serial.print(" current updates to ");
-                  Serial.println(value);*/
+#if DEBUG
+                Serial.print("[UART] Module ");
+                Serial.print(addr);
+                Serial.print(" current updates to ");
+                Serial.println(value);
+#endif
                 sys_info.modules[addr - 1][2] = value;
+
+                //UPDATE MCUB
+                int sum = 0;
+                for (int i = 0; i < sys_info.num_modules; i++) sum += sys_info.modules[i][2];
+
+                int mcub = (MAX_CURRENT - sum) / sys_info.num_modules;
+
+                char p[2] = {
+                  mcub & 0xff,
+                  (mcub >> 8) & 0xff
+                };
+                sendCmd(Serial3, CMD_UPDATE_MCUB, p, sizeof(p));
                 break;
               }
           }
@@ -160,6 +176,11 @@ void sendDoModule(Stream &_serial, char act, char* target, int length) {
 
   sendCmd(_serial, CMD_DO_MODULE, p, l);
   free(p);
+}
+
+void sendReqData(Stream &_serial, char type) {
+  char p[1] = {type};
+  sendCmd(_serial, CMD_REQ_DATA, p, sizeof(p));
 }
 
 /*** Util ***/

@@ -96,11 +96,21 @@ void resetToFactoryDetect() {
 
       if (pressDuration > LONG_PRESS_TIME) {
         digitalWrite(WIFI_STATE_PIN, LOW);
-        
+
         CoreBridge.resetToFactory();
         resetSAMD21();
       }
     }
+  }
+}
+
+void periodicCurrentRequest() {
+  static unsigned long t;
+
+  if (millis() - t > PERIODID_CURRENT_TIME) { //5 minutes interval
+    sendReqData(Serial3, MODULE_CURRENT);
+
+    t = millis();
   }
 }
 

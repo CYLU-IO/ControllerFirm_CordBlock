@@ -85,12 +85,16 @@ void loop() {
     int c = Serial.read();
 
     if (c == 87) { //W
+      Serial.println("Asking Data");
+      sendReqData(Serial3, MODULE_CURRENT);
     }
   }
 
   //if (SerialNina.available()) Serial.write(SerialNina.read());
 
   receiveSerial();
+  
+  periodicCurrentRequest();
 
 #if ENABLE_HOMEKIT
   homekitLoop();
@@ -110,7 +114,6 @@ void pinInit() {
   digitalWrite(WIFI_STATE_PIN, LOW);
 }
 
-void SERCOM0_Handler()
-{
+void SERCOM0_Handler() {
   Serial3.IrqHandler();
 }
