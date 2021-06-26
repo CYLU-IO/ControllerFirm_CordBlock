@@ -16,15 +16,17 @@ struct Accessory_Info {
 } acc_info;
 
 struct System_Info {
-  int all_current;
-  int last_plugged;
   int num_modules;
+  int sum_current;
   int modules[20][3]; //slave address[id][switchState][current]
 } sys_info;
 
 struct Smart_Modularized_Fuse_Info {
+  int  mcub;
   int  importances[20];
+  int  mcub_triggered_addr;
   bool advancedSMF;
+  bool emerg_triggered;
 } smf_info;
 
 struct System_Status {
@@ -65,7 +67,6 @@ void setup() {
 }
 
 void loop() {
-  //checkSysCurrent();
   switch (WifiMgr.getStatus()) {
     case 3:
       digitalWrite(WIFI_STATE_PIN, HIGH);
@@ -85,15 +86,21 @@ void loop() {
     int c = Serial.read();
 
     if (c == 87) { //W
-      Serial.println("Asking Data");
       sendReqData(Serial3, MODULE_CURRENT);
+      
+      Serial.print("[UART] System current: ");
+      Serial.println(sys_info.sum_current);
+
+      Serial.print("[SMF] MCUB: ");
+      Serial.println(smf_info.mcub);
     }
   }
 
   //if (SerialNina.available()) Serial.write(SerialNina.read());
 
   receiveSerial();
-  
+
+  smartCurrentCheck();
   periodicCurrentRequest();
 
 #if ENABLE_HOMEKIT

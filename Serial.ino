@@ -83,8 +83,6 @@ void receiveSerial() {
                                                   sys_info.modules[i][1],
                                                   name));
               }
-
-              Serial.print(F("[HOMEKIT] Begin HAP service: ")); Serial.println(Homekit.beginAccessory());
 #endif
 
               Serial.print(F("[UART] Total modules: ")); Serial.println(updateNumModule);
@@ -92,8 +90,12 @@ void receiveSerial() {
               char *p = (char*)malloc(updateNumModule * sizeof(char));
               for (int i = 0; i < updateNumModule; i++) p[i] = i + 1;
               sendCmd(Serial3, CMD_INIT_MODULE, p, updateNumModule); //using boardcast
-              
+
               sendReqData(Serial3, MODULE_CURRENT);
+
+#if ENABLE_HOMEKIT
+              Serial.print(F("[HOMEKIT] Begin HAP service: ")); Serial.println(Homekit.beginAccessory());
+#endif
 
               digitalWrite(MODULES_STATE_PIN, HIGH);
               sys_status.module_initialized = true;
@@ -109,7 +111,7 @@ void receiveSerial() {
           if (length < 3) return;
 
           int addr = buffer[0];
-          int value = buffer[2];
+          int value = bytesCombine(buffer[2], buffer[3]);
 
           switch (buffer[1]) {
             case MODULE_SWITCH_STATE: {
@@ -131,19 +133,44 @@ void receiveSerial() {
                 Serial.print(" current updates to ");
                 Serial.println(value);
 #endif
+
+                /*** Check MCUB Triggering ***/
+                if (value >= sys_info.modules[addr - 1][2] + smf_info.mcub) {
+                  smf_info.mcub_triggered_addr = addr;
+                  smartCurrentCheck();
+
+#if DEBUG
+                  Serial.print("[SMF] MCUB Triggered by module ");
+                  Serial.println(addr);
+#endif
+                }
+
+                /*** Update module current data ***/
                 sys_info.modules[addr - 1][2] = value;
 
-                //UPDATE MCUB
+                /*** Update MCUB ***/
                 int sum = 0;
                 for (int i = 0; i < sys_info.num_modules; i++) sum += sys_info.modules[i][2];
+                sys_info.sum_current = sum;
+
+#if DEBUG
+                Serial.print("[UART] System current: ");
+                Serial.println(sys_info.sum_current);
+#endif
 
                 int mcub = (MAX_CURRENT - sum) / sys_info.num_modules;
+                if (mcub < 0) mcub = 0;
+                smf_info.mcub = mcub;
 
                 char p[2] = {
                   mcub & 0xff,
                   (mcub >> 8) & 0xff
                 };
                 sendCmd(Serial3, CMD_UPDATE_MCUB, p, sizeof(p));
+#if DEBUG
+                Serial.print("[SMF] Update MCUB: ");
+                Serial.println(smf_info.mcub);
+#endif
                 break;
               }
           }

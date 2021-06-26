@@ -41,12 +41,7 @@ void homekitLoop() {
 
     for (int i = 0; i < l; i++) p[i] = cmd[i];
 
-#if ENABLE_I2C
-    sendI2CCmd(CMD_DO_MODULE, p, l);
-#else
     sendCmd(Serial3, CMD_DO_MODULE, p, l);
-#endif
-
     free(p);
 
     acted = false;
@@ -55,16 +50,16 @@ void homekitLoop() {
 }
 
 void turnSwitchOn(int addr) {
-  char p[1] = {addr};
-  sendDoModule(Serial3, DO_TURN_ON, p, sizeof(p));
+  char p[2] = {addr, DO_TURN_ON};
+  sendCmd(Serial3, CMD_DO_MODULE, p, sizeof(p));
 }
 void turnSwitchOff(int addr) {
-  char p[1] = {addr};
-  sendDoModule(Serial3, DO_TURN_OFF, p, sizeof(p));
+  char p[2] = {addr, DO_TURN_OFF};
+  sendCmd(Serial3, CMD_DO_MODULE, p, sizeof(p));
 }
 
-void checkSysCurrent() {
-  if (sys_info.all_current > MAX_CURRENT) { //check if system current is over loaded
+void smartCurrentCheck() {
+  if (sys_info.sum_current > MAX_CURRENT) { //check if system current is over loaded
     if (smf_info.advancedSMF) { //if customized emergency cutdown is enabled
       /*
          1. reverse the smfImportances to start cutting down powered plug(check the current)
@@ -78,9 +73,26 @@ void checkSysCurrent() {
         }
       }
     } else {
-      Serial.println("System current is overloaded! Cut down the last-plugged.");
-      if (sys_info.last_plugged != 0) turnSwitchOff(sys_info.last_plugged); //cut the overloaded itself
+      if (!smf_info.emerg_triggered) {
+#if DEBUG
+        Serial.print("[SMF] Overloaded. Turning ");
+        Serial.print(smf_info.mcub_triggered_addr);
+        Serial.println(" off");
+#endif
+
+        turnSwitchOff(smf_info.mcub_triggered_addr);
+        smf_info.emerg_triggered = true;
+      } else {
+        static unsigned long t;
+
+        if (millis() - t > 1000) {
+          sendReqData(Serial3, MODULE_CURRENT);
+          t = millis();
+        }
+      }
     }
+  } else {
+    smf_info.emerg_triggered = false;
   }
 }
 
@@ -107,7 +119,7 @@ void resetToFactoryDetect() {
 void periodicCurrentRequest() {
   static unsigned long t;
 
-  if (millis() - t > PERIODID_CURRENT_TIME) { //5 minutes interval
+  if (millis() - t >= PERIODID_CURRENT_TIME) { //5 minutes interval
     sendReqData(Serial3, MODULE_CURRENT);
 
     t = millis();

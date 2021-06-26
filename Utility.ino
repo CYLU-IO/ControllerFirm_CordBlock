@@ -4,7 +4,7 @@ uint8_t calcCRC(char* str, int length) {
   crc.reset();
   crc.setPolynome(0x05);
   crc.add((uint8_t*)str, length);
-  
+
   return crc.getCRC();
 }
 
@@ -20,9 +20,13 @@ int searchAddrById(int id) {
   return 0;
 }
 
+int bytesCombine(char low_byte, char high_byte) {
+  return (low_byte & 0xff) | high_byte << 8;
+}
+
 /***
- * Format
- */
+   Format
+*/
 String int2str(int n, int leng) {
   String re = "";
 
