@@ -64,12 +64,12 @@ void receiveSerial() {
 #endif
             }
 
-            sys_info.modules[index][0] = data["id"].as<int>(); //insert id into slaves table
+            sys_info.modules[index][0] = data["pri"].as<int>(); //insert id into slaves table
             sys_info.modules[index][1] = data["switch_state"].as<int>(); //insert switch state into slaves table
             sys_info.modules[index][2] = 0;
 
             Serial.print("Addr: "); Serial.println(index + 1);
-            Serial.print("ID: "); Serial.println(sys_info.modules[index][0]);
+            Serial.print("Priority: "); Serial.println(sys_info.modules[index][0]);
             Serial.print("Name: "); Serial.println(name);
 
             if (index == 0) {
@@ -78,10 +78,7 @@ void receiveSerial() {
 #if ENABLE_HOMEKIT
               for (int i = 0; i < updateNumModule; i++) {
                 Serial.print(F("[HOMEKIT] Add service: "));
-                Serial.println(Homekit.addService(i,
-                                                  sys_info.modules[i][0],
-                                                  sys_info.modules[i][1],
-                                                  name));
+                Serial.println(Homekit.addService(i, sys_info.modules[i][1], name));
               }
 #endif
 
@@ -122,7 +119,7 @@ void receiveSerial() {
                 Serial.println(value);
 #endif
                 sys_info.modules[addr - 1][1] = value;
-                Homekit.setServiceValue(addr - 1, sys_info.modules[addr - 1][0], value); //set homekit state forcibly
+                Homekit.setServiceValue(addr - 1, value); //set homekit state forcibly
                 break;
               }
 
@@ -152,11 +149,6 @@ void receiveSerial() {
                 int sum = 0;
                 for (int i = 0; i < sys_info.num_modules; i++) sum += sys_info.modules[i][2];
                 sys_info.sum_current = sum;
-
-#if DEBUG
-                Serial.print("[UART] System current: ");
-                Serial.println(sys_info.sum_current);
-#endif
 
                 int mcub = (MAX_CURRENT - sum) / sys_info.num_modules;
                 if (mcub < 0) mcub = 0;

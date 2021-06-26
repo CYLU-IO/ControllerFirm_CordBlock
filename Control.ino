@@ -7,14 +7,13 @@ void homekitLoop() {
 
   for (uint8_t i = 0; i < sys_info.num_modules; i++) {
     int targetedAddr = i + 1;
-    int mid = sys_info.modules[i][0];
     int mSwitchState = sys_info.modules[i][1];
-    int hkState = Homekit.getServiceValue(i, mid);
+    int hkState = Homekit.getServiceValue(i);
 
     receiveSerial();
 
-    if (Homekit.readServiceTriggered(i, mid)) { //triggered, update module
-      hkState = Homekit.getServiceValue(i, mid);
+    if (Homekit.readServiceTriggered(i)) { //triggered, update module
+      hkState = Homekit.getServiceValue(i);
       cmd[length * 2] = targetedAddr;
 
       if (hkState) {
@@ -59,19 +58,15 @@ void turnSwitchOff(int addr) {
 }
 
 void smartCurrentCheck() {
-  if (sys_info.sum_current > MAX_CURRENT) { //check if system current is over loaded
-    if (smf_info.advancedSMF) { //if customized emergency cutdown is enabled
-      /*
-         1. reverse the smfImportances to start cutting down powered plug(check the current)
-      */
-
-      for (int i = sys_info.num_modules - 1; i >= 0; i--) {
+  if (sys_info.sum_current > MAX_CURRENT) {
+    if (smf_info.advanced_smf) {
+      /*for (int i = sys_info.num_modules - 1; i >= 0; i--) {
         int addr = searchAddrById(smf_info.importances[i]);
 
         if (sys_info.modules[addr][1] && sys_info.modules[addr][2] > 10) {
           turnSwitchOff(addr);
         }
-      }
+      }*/
     } else {
       if (!smf_info.emerg_triggered) {
 #if DEBUG

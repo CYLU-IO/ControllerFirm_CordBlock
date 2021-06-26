@@ -18,14 +18,13 @@ struct Accessory_Info {
 struct System_Info {
   int num_modules;
   int sum_current;
-  int modules[20][3]; //slave address[id][switchState][current]
+  int modules[20][3]; //modules DB[priority][switchState][current]
 } sys_info;
 
 struct Smart_Modularized_Fuse_Info {
   int  mcub;
-  int  importances[20];
   int  mcub_triggered_addr;
-  bool advancedSMF;
+  bool advanced_smf;
   bool emerg_triggered;
 } smf_info;
 
@@ -49,6 +48,9 @@ void setup() {
     acc_info.initialized = true;
     //acc_info_flash.write(acc_info);
   }
+
+  //TEST ONLY- Remove
+  smf_info.advanced_smf = false;
 
 #if ENABLE_I2C
   i2cInit();
