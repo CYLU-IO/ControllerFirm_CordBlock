@@ -68,19 +68,19 @@ void receiveSerial() {
             sys_info.modules[index][1] = data["switch_state"].as<int>(); //insert switch state into slaves table
             sys_info.modules[index][2] = 0;
 
+#if DEBUG
             Serial.print("Addr: "); Serial.println(index + 1);
             Serial.print("Priority: "); Serial.println(sys_info.modules[index][0]);
             Serial.print("Name: "); Serial.println(name);
+#endif
+
+#if ENABLE_HOMEKIT
+            Serial.print(F("[HOMEKIT] Add service: "));
+            Serial.println(Homekit.addService(index, sys_info.modules[index][1], name));
+#endif
 
             if (index == 0) {
               sys_info.num_modules = updateNumModule;
-
-#if ENABLE_HOMEKIT
-              for (int i = 0; i < updateNumModule; i++) {
-                Serial.print(F("[HOMEKIT] Add service: "));
-                Serial.println(Homekit.addService(i, sys_info.modules[i][1], name));
-              }
-#endif
 
               Serial.print(F("[UART] Total modules: ")); Serial.println(updateNumModule);
 

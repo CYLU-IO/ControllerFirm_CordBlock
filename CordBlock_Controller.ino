@@ -50,7 +50,7 @@ void setup() {
   }
 
   //TEST ONLY- Remove
-  smf_info.advanced_smf = false;
+  smf_info.advanced_smf = true;
 
 #if ENABLE_I2C
   i2cInit();

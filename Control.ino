@@ -8,15 +8,13 @@ void homekitLoop() {
   for (uint8_t i = 0; i < sys_info.num_modules; i++) {
     int targetedAddr = i + 1;
     int mSwitchState = sys_info.modules[i][1];
-    int hkState = Homekit.getServiceValue(i);
 
     receiveSerial();
 
     if (Homekit.readServiceTriggered(i)) { //triggered, update module
-      hkState = Homekit.getServiceValue(i);
       cmd[length * 2] = targetedAddr;
 
-      if (hkState) {
+      if (Homekit.getServiceValue(i)) {
 #if DEBUG
         Serial.println("[HOMEKIT] Switch turn ON");
 #endif
@@ -33,6 +31,8 @@ void homekitLoop() {
       acted = true;
     }
   }
+
+
 
   if (acted) {
     int l = length * 2;
@@ -66,7 +66,7 @@ void smartCurrentCheck() {
         if (sys_info.modules[addr][1] && sys_info.modules[addr][2] > 10) {
           turnSwitchOff(addr);
         }
-      }*/
+        }*/
     } else {
       if (!smf_info.emerg_triggered) {
 #if DEBUG
