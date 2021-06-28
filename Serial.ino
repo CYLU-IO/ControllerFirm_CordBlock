@@ -133,7 +133,7 @@ void receiveSerial() {
 
                 /*** Check MCUB Triggering ***/
                 if (value >= sys_info.modules[addr - 1][2] + smf_info.mcub) {
-                  smf_info.mcub_triggered_addr = addr;
+                  smf_info.overload_triggered_addr = addr;
                   smartCurrentCheck();
 
 #if DEBUG
@@ -202,7 +202,7 @@ void sendReqData(Stream &_serial, char type) {
 }
 
 void sendUpdateData(Stream &_serial, char type, int* addr, int* value, int length) {
-  int l = length * 3 + 1; //a pack takes four bytes
+  int l = length * 3 + 1; //a pack takes three bytes
   char *p = (char*)malloc(l * sizeof(char));
 
   p[0] = type;
@@ -303,6 +303,7 @@ void sendCmd(Stream &_serial, char cmd, char* payload, int length) {
   for (int i = 0; i < sizeof(buf); i++)
     serial->print(buf[i]);
 }
+
 void sendCmd(Stream &_serial, char cmd) {
   char *p = 0x00;
   sendCmd(_serial, cmd, p, 0);

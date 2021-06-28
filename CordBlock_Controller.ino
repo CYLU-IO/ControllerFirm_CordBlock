@@ -23,7 +23,7 @@ struct System_Info {
 
 struct Smart_Modularized_Fuse_Info {
   int  mcub;
-  int  mcub_triggered_addr;
+  int  overload_triggered_addr;
   bool advanced_smf;
   bool emerg_triggered;
 } smf_info;
@@ -50,7 +50,7 @@ void setup() {
   }
 
   //TEST ONLY- Remove
-  smf_info.advanced_smf = true;
+  smf_info.advanced_smf = false;
 
 #if ENABLE_I2C
   i2cInit();

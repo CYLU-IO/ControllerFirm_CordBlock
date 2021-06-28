@@ -32,8 +32,6 @@ void homekitLoop() {
     }
   }
 
-
-
   if (acted) {
     int l = length * 2;
     char *p = (char*)malloc(l * sizeof(char));
@@ -59,31 +57,31 @@ void turnSwitchOff(int addr) {
 
 void smartCurrentCheck() {
   if (sys_info.sum_current > MAX_CURRENT) {
-    if (smf_info.advanced_smf) {
-      /*for (int i = sys_info.num_modules - 1; i >= 0; i--) {
-        int addr = searchAddrById(smf_info.importances[i]);
+    if (!smf_info.emerg_triggered) {
+      if (smf_info.advanced_smf) {
+        int highest_priority = 0;
 
-        if (sys_info.modules[addr][1] && sys_info.modules[addr][2] > 10) {
-          turnSwitchOff(addr);
+        for (int i = 0; i < sys_info.num_modules; i++) {
+          if (sys_info.modules[i][1] && sys_info.modules[i][0] >= highest_priority) {
+            smf_info.overload_triggered_addr = i + 1;
+            highest_priority = sys_info.modules[i][0];
+          }
         }
-        }*/
-    } else {
-      if (!smf_info.emerg_triggered) {
+      }
+
 #if DEBUG
-        Serial.print("[SMF] Overloaded. Turning ");
-        Serial.print(smf_info.mcub_triggered_addr);
-        Serial.println(" off");
+      Serial.print("[SMF] Overloaded. Turning OFF: ");
+      Serial.print(smf_info.overload_triggered_addr);
 #endif
 
-        turnSwitchOff(smf_info.mcub_triggered_addr);
-        smf_info.emerg_triggered = true;
-      } else {
-        static unsigned long t;
+      turnSwitchOff(smf_info.overload_triggered_addr);
+      smf_info.emerg_triggered = true;
+    } else {
+      static unsigned long t;
 
-        if (millis() - t > 1000) {
-          sendReqData(Serial3, MODULE_CURRENT);
-          t = millis();
-        }
+      if (millis() - t > 1000) {
+        sendReqData(Serial3, MODULE_CURRENT);
+        t = millis();
       }
     }
   } else {
