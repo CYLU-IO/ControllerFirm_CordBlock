@@ -104,7 +104,7 @@ void receiveSerial() {
           break;
         }
 
-      case CMD_UPDATE_MASTER: {
+      case CMD_UPDATE_DATA: {
           if (length < 3) return;
 
           int addr = buffer[0];
@@ -151,14 +151,13 @@ void receiveSerial() {
                 sys_info.sum_current = sum;
 
                 int mcub = (MAX_CURRENT - sum) / sys_info.num_modules;
-                if (mcub < 0) mcub = 0;
+                mcub = (mcub >= 0) ? mcub : 0;
                 smf_info.mcub = mcub;
 
-                char p[2] = {
-                  mcub & 0xff,
-                  (mcub >> 8) & 0xff
-                };
-                sendCmd(Serial3, CMD_UPDATE_MCUB, p, sizeof(p));
+                int a[1] = {0};
+                int v[1] = {mcub};
+                sendUpdateData(Serial3, MODULE_MCUB, a, v, 1);
+
 #if DEBUG
                 Serial.print("[SMF] Update MCUB: ");
                 Serial.println(smf_info.mcub);
@@ -200,6 +199,22 @@ void sendDoModule(Stream &_serial, char act, char* target, int length) {
 void sendReqData(Stream &_serial, char type) {
   char p[1] = {type};
   sendCmd(_serial, CMD_REQ_DATA, p, sizeof(p));
+}
+
+void sendUpdateData(Stream &_serial, char type, int* addr, int* value, int length) {
+  int l = length * 3 + 1; //a pack takes four bytes
+  char *p = (char*)malloc(l * sizeof(char));
+
+  p[0] = type;
+
+  for (int i = 0; i < length; i++) {
+    p[i * 3 + 1] = addr[i];
+    p[i * 3 + 2] = value[i] & 0xff;
+    p[i * 3 + 3] = (value[i] >> 8) & 0xff;
+  }
+
+  sendCmd(_serial, CMD_UPDATE_DATA, p, l);
+  free(p);
 }
 
 /*** Util ***/
