@@ -10,8 +10,6 @@
 #include "wiring_private.h"
 
 struct Accessory_Info {
-  char serial_number[12];
-  char name[32];
   bool initialized;
 } acc_info;
 
@@ -42,9 +40,8 @@ void setup() {
   acc_info = acc_info_flash.read();
   smf_info = smf_info_flash.read();
 
-  if (!acc_info.initialized) { //Start Accessory Initialization
-    serialNumGenerator(acc_info.serial_number, "TW0", "1", "3", 7);
-    strcpy(acc_info.name, "CordBlock");
+  if (!acc_info.initialized) {
+    //serialNumGenerator(acc_info.serial_number, "TW0", "1", "3", 7);
     acc_info.initialized = true;
     //acc_info_flash.write(acc_info);
   }
@@ -62,8 +59,8 @@ void setup() {
   pinInit();
   resetToFactoryDetect();
 
-  //while (!Serial);
-  //SerialNina.begin(115200);
+  while (!Serial);
+  SerialNina.begin(115200);
 
   moduleReconncTrial();
 }
@@ -98,7 +95,7 @@ void loop() {
     }
   }
 
-  //if (SerialNina.available()) Serial.write(SerialNina.read());
+  if (SerialNina.available()) Serial.write(SerialNina.read());
 
   receiveSerial();
 

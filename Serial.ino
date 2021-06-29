@@ -54,13 +54,8 @@ void receiveSerial() {
               sys_status.module_initialized = false;
 
 #if ENABLE_HOMEKIT
-              if (Homekit.countAccessory() > 0) {
-                Serial.print(F("[HOMEKIT] Delete previous accessory: "));
-                Serial.println(Homekit.deleteAccessory());
-              }
-
               Serial.print(F("[HOMEKIT] Create accessory: "));
-              Serial.println(Homekit.createAccessory((const char*)acc_info.serial_number, (const char*)acc_info.name));
+              Serial.println(CoreBridge.createAccessory());
 #endif
             }
 
@@ -76,13 +71,16 @@ void receiveSerial() {
 
 #if ENABLE_HOMEKIT
             Serial.print(F("[HOMEKIT] Add service: "));
-            Serial.println(Homekit.addService(index, sys_info.modules[index][1], name));
+            Serial.println(CoreBridge.addModule(index, sys_info.modules[index][1], name));
 #endif
 
             if (index == 0) {
               sys_info.num_modules = updateNumModule;
 
-              Serial.print(F("[UART] Total modules: ")); Serial.println(updateNumModule);
+#if DEBUG
+              Serial.print(F("[UART] Total modules: "));
+              Serial.println(updateNumModule);
+#endif
 
               char *p = (char*)malloc(updateNumModule * sizeof(char));
               for (int i = 0; i < updateNumModule; i++) p[i] = i + 1;
@@ -91,7 +89,8 @@ void receiveSerial() {
               sendReqData(Serial3, MODULE_CURRENT);
 
 #if ENABLE_HOMEKIT
-              Serial.print(F("[HOMEKIT] Begin HAP service: ")); Serial.println(Homekit.beginAccessory());
+              Serial.print(F("[HOMEKIT] Begin HAP service: "));
+              Serial.println(CoreBridge.beginAccessory());
 #endif
 
               digitalWrite(MODULES_STATE_PIN, HIGH);
@@ -119,7 +118,7 @@ void receiveSerial() {
                 Serial.println(value);
 #endif
                 sys_info.modules[addr - 1][1] = value;
-                Homekit.setServiceValue(addr - 1, value); //set homekit state forcibly
+                CoreBridge.setModuleValue(addr - 1, value); //set homekit state forcibly
                 break;
               }
 

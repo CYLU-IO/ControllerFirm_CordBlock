@@ -11,10 +11,10 @@ void homekitLoop() {
 
     receiveSerial();
 
-    if (Homekit.readServiceTriggered(i)) { //triggered, update module
+    if (CoreBridge.readModuleTriggered(i)) { //triggered, update module
       cmd[length * 2] = targetedAddr;
 
-      if (Homekit.getServiceValue(i)) {
+      if (CoreBridge.getModuleValue(i)) {
 #if DEBUG
         Serial.println("[HOMEKIT] Switch turn ON");
 #endif
@@ -71,7 +71,7 @@ void smartCurrentCheck() {
 
 #if DEBUG
       Serial.print("[SMF] Overloaded. Turning OFF: ");
-      Serial.print(smf_info.overload_triggered_addr);
+      Serial.println(smf_info.overload_triggered_addr);
 #endif
 
       turnSwitchOff(smf_info.overload_triggered_addr);
