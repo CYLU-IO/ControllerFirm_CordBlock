@@ -14,7 +14,7 @@ void homekitLoop() {
     if (CoreBridge.readModuleTriggered(i)) { //triggered, update module
       cmd[length * 2] = targetedAddr;
 
-      if (CoreBridge.getModuleValue(i)) {
+      if (CoreBridge.getModuleSwitchState(i)) {
 #if DEBUG
         Serial.println("[HOMEKIT] Switch turn ON");
 #endif
@@ -43,6 +43,26 @@ void homekitLoop() {
 
     acted = false;
     length = 0;
+  }
+}
+
+void moduleDataUpdateLoop() {
+  if (!sys_status.module_initialized) return;
+
+  for (uint8_t i = 0; i < sys_info.num_modules; i++) {
+    int targetedAddr = i + 1;
+    int mPriority = sys_info.modules[i][0];
+    int spiPriority = CoreBridge.getModulePriority(i);
+
+    receiveSerial();
+
+    if (spiPriority != mPriority) {
+      int a[1] = {targetedAddr};
+      int v[1] = {spiPriority};
+      
+      sendUpdateData(Serial3, MODULE_PRIORITY, a, v, 1);
+      sys_info.modules[i][0] = spiPriority;
+    }
   }
 }
 

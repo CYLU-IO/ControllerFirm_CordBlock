@@ -31,20 +31,12 @@ struct System_Status {
 } sys_status;
 
 /*** in-Flash Data ***/
-FlashStorage(acc_info_flash, Accessory_Info);
 FlashStorage(smf_info_flash, Smart_Modularized_Fuse_Info);
 
 Uart Serial3 (&sercom0, 5, 6, SERCOM_RX_PAD_1, UART_TX_PAD_0);
 
 void setup() {
-  acc_info = acc_info_flash.read();
   smf_info = smf_info_flash.read();
-
-  if (!acc_info.initialized) {
-    //serialNumGenerator(acc_info.serial_number, "TW0", "1", "3", 7);
-    acc_info.initialized = true;
-    //acc_info_flash.write(acc_info);
-  }
 
   //TEST ONLY- Remove
   smf_info.advanced_smf = false;
@@ -85,13 +77,9 @@ void loop() {
     int c = Serial.read();
 
     if (c == 87) { //W
-      sendReqData(Serial3, MODULE_CURRENT);
-      
-      Serial.print("[UART] System current: ");
-      Serial.println(sys_info.sum_current);
-
-      Serial.print("[SMF] MCUB: ");
-      Serial.println(smf_info.mcub);
+      int a[1] = {1};
+      int v[1] = {2};
+      sendUpdateData(Serial3, MODULE_PRIORITY, a, v, 1);
     }
   }
 
@@ -101,6 +89,8 @@ void loop() {
 
   smartCurrentCheck();
   periodicCurrentRequest();
+
+  moduleDataUpdateLoop();
 
 #if ENABLE_HOMEKIT
   homekitLoop();

@@ -71,7 +71,11 @@ void receiveSerial() {
 
 #if ENABLE_HOMEKIT
             Serial.print(F("[HOMEKIT] Add service: "));
-            Serial.println(CoreBridge.addModule(index, sys_info.modules[index][1], name));
+            Serial.println(CoreBridge.addModule(index,
+                                                name,
+                                                0,
+                                                sys_info.modules[index][0],
+                                                sys_info.modules[index][1]));
 #endif
 
             if (index == 0) {
@@ -118,9 +122,20 @@ void receiveSerial() {
                 Serial.println(value);
 #endif
                 sys_info.modules[addr - 1][1] = value;
-                CoreBridge.setModuleValue(addr - 1, value); //set homekit state forcibly
+                CoreBridge.setModuleSwitchState(addr - 1, value);
                 break;
               }
+
+            /*case MODULE_PRIORITY: {
+              #if DEBUG
+                Serial.print("[UART] Module ");
+                Serial.print(addr);
+                Serial.print(" priority changes to ");
+                Serial.println(value);
+              #endif
+                sys_info.modules[addr - 1][0] = value;
+                break;
+              }*/
 
             case MODULE_CURRENT: {
 #if DEBUG
@@ -143,6 +158,7 @@ void receiveSerial() {
 
                 /*** Update module current data ***/
                 sys_info.modules[addr - 1][2] = value;
+                CoreBridge.setModuleCurrent(addr - 1, buffer[2], buffer[3]);
 
                 /*** Update MCUB ***/
                 int sum = 0;
