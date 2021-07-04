@@ -9,51 +9,56 @@
 #include "firm_definitions.h"
 #include "wiring_private.h"
 
-struct Accessory_Info {
+struct device_config_t {
+  bool advanced_smf;
   bool initialized;
-} acc_info;
+} device_config;
 
-struct System_Info {
+struct smart_modularized_fuse_status_t {
+  int  mcub;
+  int  overload_triggered_addr;
+  bool emerg_triggered;
+} smf_status;
+
+struct system_status_t {
   int num_modules;
   int sum_current;
   int modules[20][3]; //modules DB[priority][switchState][current]
-} sys_info;
-
-struct Smart_Modularized_Fuse_Info {
-  int  mcub;
-  int  overload_triggered_addr;
-  bool advanced_smf;
-  bool emerg_triggered;
-} smf_info;
-
-struct System_Status {
   bool module_initialized;
 } sys_status;
 
 /*** in-Flash Data ***/
-FlashStorage(smf_info_flash, Smart_Modularized_Fuse_Info);
+FlashStorage(device_config_flash, device_config_t);
 
 Uart Serial3 (&sercom0, 5, 6, SERCOM_RX_PAD_1, UART_TX_PAD_0);
 
 void setup() {
-  smf_info = smf_info_flash.read();
+  /*** Device Configuration ***/
+  device_config = device_config_flash.read();
+  if (!device_config.initialized) {
+    device_config.advanced_smf = false;
+    
+    device_config.initialized = true;
+    //device_config_flash.write(device_config);
+  }
 
-  //TEST ONLY- Remove
-  smf_info.advanced_smf = false;
-
-#if ENABLE_I2C
+  /*** I2C Init. for RingEEPROM and Sensor ***/
   i2cInit();
-#endif
 
+  /*** UART and CoreBridge(SPI) Init. ***/
   serialInit();
   CoreBridge.begin();
 
+  /*** Pin and Button Init. ***/
   pinInit();
   resetToFactoryDetect();
 
+  //TEST ONLY- Remove
   while (!Serial);
   SerialNina.begin(115200);
+  //
 
+  /*** Action in setup() ***/
   moduleReconncTrial();
 }
 

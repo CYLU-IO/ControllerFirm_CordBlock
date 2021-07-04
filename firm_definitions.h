@@ -8,7 +8,6 @@
 
 #define DEBUG                   1
 #define ENABLE_HOMEKIT          1
-#define ENABLE_I2C              0
 
 #define RST_PIN                 2
 #define BUTTON_PIN              3

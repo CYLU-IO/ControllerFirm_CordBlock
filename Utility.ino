@@ -9,13 +9,13 @@ uint8_t calcCRC(char* str, int length) {
 }
 
 int findNearZero() {
-  for (int i = 1; i < sizeof(sys_info.modules); i++) if (sys_info.modules[i][0] == 0) return i;
+  for (int i = 1; i < sizeof(sys_status.modules); i++) if (sys_status.modules[i][0] == 0) return i;
 
   return -1;
 }
 
 int searchAddrById(int id) {
-  for (int i = 1; i < sys_info.num_modules; i++) if (sys_info.modules[i][0] == id) return i;
+  for (int i = 1; i < sys_status.num_modules; i++) if (sys_status.modules[i][0] == id) return i;
 
   return 0;
 }

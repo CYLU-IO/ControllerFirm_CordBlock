@@ -59,13 +59,13 @@ void receiveSerial() {
 #endif
             }
 
-            sys_info.modules[index][0] = data["pri"].as<int>(); //insert id into slaves table
-            sys_info.modules[index][1] = data["switch_state"].as<int>(); //insert switch state into slaves table
-            sys_info.modules[index][2] = 0;
+            sys_status.modules[index][0] = data["pri"].as<int>(); //insert id into slaves table
+            sys_status.modules[index][1] = data["switch_state"].as<int>(); //insert switch state into slaves table
+            sys_status.modules[index][2] = 0;
 
 #if DEBUG
             Serial.print("Addr: "); Serial.println(index + 1);
-            Serial.print("Priority: "); Serial.println(sys_info.modules[index][0]);
+            Serial.print("Priority: "); Serial.println(sys_status.modules[index][0]);
             Serial.print("Name: "); Serial.println(name);
 #endif
 
@@ -74,12 +74,12 @@ void receiveSerial() {
             Serial.println(CoreBridge.addModule(index,
                                                 name,
                                                 0,
-                                                sys_info.modules[index][0],
-                                                sys_info.modules[index][1]));
+                                                sys_status.modules[index][0],
+                                                sys_status.modules[index][1]));
 #endif
 
             if (index == 0) {
-              sys_info.num_modules = updateNumModule;
+              sys_status.num_modules = updateNumModule;
 
 #if DEBUG
               Serial.print(F("[UART] Total modules: "));
@@ -121,7 +121,7 @@ void receiveSerial() {
                 Serial.print(" state changes to ");
                 Serial.println(value);
 #endif
-                sys_info.modules[addr - 1][1] = value;
+                sys_status.modules[addr - 1][1] = value;
                 CoreBridge.setModuleSwitchState(addr - 1, value);
                 break;
               }
@@ -133,7 +133,7 @@ void receiveSerial() {
                 Serial.print(" priority changes to ");
                 Serial.println(value);
               #endif
-                sys_info.modules[addr - 1][0] = value;
+                sys_status.modules[addr - 1][0] = value;
                 break;
               }*/
 
@@ -146,8 +146,8 @@ void receiveSerial() {
 #endif
 
                 /*** Check MCUB Triggering ***/
-                if (value >= sys_info.modules[addr - 1][2] + smf_info.mcub) {
-                  smf_info.overload_triggered_addr = addr;
+                if (value >= sys_status.modules[addr - 1][2] + smf_status.mcub) {
+                  smf_status.overload_triggered_addr = addr;
                   smartCurrentCheck();
 
 #if DEBUG
@@ -157,17 +157,17 @@ void receiveSerial() {
                 }
 
                 /*** Update module current data ***/
-                sys_info.modules[addr - 1][2] = value;
+                sys_status.modules[addr - 1][2] = value;
                 CoreBridge.setModuleCurrent(addr - 1, buffer[2], buffer[3]);
 
                 /*** Update MCUB ***/
                 int sum = 0;
-                for (int i = 0; i < sys_info.num_modules; i++) sum += sys_info.modules[i][2];
-                sys_info.sum_current = sum;
+                for (int i = 0; i < sys_status.num_modules; i++) sum += sys_status.modules[i][2];
+                sys_status.sum_current = sum;
 
-                int mcub = (MAX_CURRENT - sum) / sys_info.num_modules;
+                int mcub = (MAX_CURRENT - sum) / sys_status.num_modules;
                 mcub = (mcub >= 0) ? mcub : 0;
-                smf_info.mcub = mcub;
+                smf_status.mcub = mcub;
 
                 int a[1] = {0};
                 int v[1] = {mcub};
@@ -175,7 +175,7 @@ void receiveSerial() {
 
 #if DEBUG
                 Serial.print("[SMF] Update MCUB: ");
-                Serial.println(smf_info.mcub);
+                Serial.println(smf_status.mcub);
 #endif
                 break;
               }

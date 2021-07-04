@@ -5,9 +5,9 @@ void homekitLoop() {
   static int length = 0;
   static bool acted = false;
 
-  for (uint8_t i = 0; i < sys_info.num_modules; i++) {
+  for (uint8_t i = 0; i < sys_status.num_modules; i++) {
     int targetedAddr = i + 1;
-    int mSwitchState = sys_info.modules[i][1];
+    int mSwitchState = sys_status.modules[i][1];
 
     receiveSerial();
 
@@ -49,9 +49,9 @@ void homekitLoop() {
 void moduleDataUpdateLoop() {
   if (!sys_status.module_initialized) return;
 
-  for (uint8_t i = 0; i < sys_info.num_modules; i++) {
+  for (uint8_t i = 0; i < sys_status.num_modules; i++) {
     int targetedAddr = i + 1;
-    int mPriority = sys_info.modules[i][0];
+    int mPriority = sys_status.modules[i][0];
     int spiPriority = CoreBridge.getModulePriority(i);
 
     receiveSerial();
@@ -61,7 +61,7 @@ void moduleDataUpdateLoop() {
       int v[1] = {spiPriority};
       
       sendUpdateData(Serial3, MODULE_PRIORITY, a, v, 1);
-      sys_info.modules[i][0] = spiPriority;
+      sys_status.modules[i][0] = spiPriority;
     }
   }
 }
@@ -76,26 +76,26 @@ void turnSwitchOff(int addr) {
 }
 
 void smartCurrentCheck() {
-  if (sys_info.sum_current > MAX_CURRENT) {
-    if (!smf_info.emerg_triggered) {
-      if (smf_info.advanced_smf) {
+  if (sys_status.sum_current > MAX_CURRENT) {
+    if (!smf_status.emerg_triggered) {
+      if (device_config.advanced_smf) {
         int highest_priority = 0;
 
-        for (int i = 0; i < sys_info.num_modules; i++) {
-          if (sys_info.modules[i][1] && sys_info.modules[i][0] >= highest_priority) {
-            smf_info.overload_triggered_addr = i + 1;
-            highest_priority = sys_info.modules[i][0];
+        for (int i = 0; i < sys_status.num_modules; i++) {
+          if (sys_status.modules[i][1] && sys_status.modules[i][0] >= highest_priority) {
+            smf_status.overload_triggered_addr = i + 1;
+            highest_priority = sys_status.modules[i][0];
           }
         }
       }
 
 #if DEBUG
       Serial.print("[SMF] Overloaded. Turning OFF: ");
-      Serial.println(smf_info.overload_triggered_addr);
+      Serial.println(smf_status.overload_triggered_addr);
 #endif
 
-      turnSwitchOff(smf_info.overload_triggered_addr);
-      smf_info.emerg_triggered = true;
+      turnSwitchOff(smf_status.overload_triggered_addr);
+      smf_status.emerg_triggered = true;
     } else {
       static unsigned long t;
 
@@ -105,7 +105,7 @@ void smartCurrentCheck() {
       }
     }
   } else {
-    smf_info.emerg_triggered = false;
+    smf_status.emerg_triggered = false;
   }
 }
 
