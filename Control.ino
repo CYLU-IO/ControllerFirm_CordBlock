@@ -66,6 +66,10 @@ void moduleDataUpdateLoop() {
   }
 }
 
+void configurationsUpdateLoop() {
+  device_config.advanced_smf = CoreBridge.getEnablePOP();
+}
+
 void turnSwitchOn(int addr) {
   char p[2] = {addr, DO_TURN_ON};
   sendCmd(Serial3, CMD_DO_MODULE, p, sizeof(p));

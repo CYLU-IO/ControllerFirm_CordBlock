@@ -1,10 +1,8 @@
 #include <CRC.h>
 #include <CRC8.h>
-#include <Wire.h>
 #include <Button2.h>
 #include <CoreBridge.h>
 #include <ArduinoJson.h>
-#include <FlashStorage.h>
 
 #include "firm_definitions.h"
 #include "wiring_private.h"
@@ -27,23 +25,11 @@ struct system_status_t {
   bool module_initialized;
 } sys_status;
 
-/*** in-Flash Data ***/
-FlashStorage(device_config_flash, device_config_t);
-
 Uart Serial3 (&sercom0, 5, 6, SERCOM_RX_PAD_1, UART_TX_PAD_0);
 
 void setup() {
-  /*** Device Configuration ***/
-  device_config = device_config_flash.read();
-  if (!device_config.initialized) {
-    device_config.advanced_smf = false;
-    
-    device_config.initialized = true;
-    //device_config_flash.write(device_config);
-  }
-
-  /*** I2C Init. for RingEEPROM and Sensor ***/
-  i2cInit();
+  /*** Warehouse Init. for RingEEPROM and Sensor ***/
+  Warehouse.begin();
 
   /*** UART and CoreBridge(SPI) Init. ***/
   serialInit();
@@ -63,6 +49,8 @@ void setup() {
 }
 
 void loop() {
+  configurationsUpdateLoop();
+  
   switch (WifiMgr.getStatus()) {
     case 3:
       digitalWrite(WIFI_STATE_PIN, HIGH);
@@ -82,9 +70,7 @@ void loop() {
     int c = Serial.read();
 
     if (c == 87) { //W
-      int a[1] = {1};
-      int v[1] = {2};
-      sendUpdateData(Serial3, MODULE_PRIORITY, a, v, 1);
+      //
     }
   }
 
