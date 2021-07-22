@@ -148,7 +148,7 @@ void receiveSerial() {
                 /*** Check MCUB Triggering ***/
                 if (value >= sys_status.modules[addr - 1][2] + smf_status.mcub) {
                   smf_status.overload_triggered_addr = addr;
-                  smartCurrentCheck();
+                  smfCheckRoutine();
 
 #if DEBUG
                   Serial.print("[SMF] MCUB Triggered by module ");

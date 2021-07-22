@@ -59,7 +59,7 @@ void moduleDataUpdateLoop() {
     if (spiPriority != mPriority) {
       int a[1] = {targetedAddr};
       int v[1] = {spiPriority};
-      
+
       sendUpdateData(Serial3, MODULE_PRIORITY, a, v, 1);
       sys_status.modules[i][0] = spiPriority;
     }
@@ -68,6 +68,42 @@ void moduleDataUpdateLoop() {
 
 void configurationsUpdateLoop() {
   device_config.advanced_smf = CoreBridge.getEnablePOP();
+}
+
+void wifiLedCheckRoutine() {
+  switch (WifiMgr.getStatus()) {
+    case 3:
+      digitalWrite(WIFI_STATE_PIN, HIGH);
+      break;
+
+    case 4:
+      CoreBridge.resetNetwork();
+      resetSAMD21();
+      break;
+
+    default:
+      digitalWrite(WIFI_STATE_PIN, LOW);
+      break;
+  }
+}
+
+void warehouseRequestCheckRoutine() {
+  static int warehouse_request = CoreBridge.readWarehouseRequest();
+  
+  switch (warehouse_request) {
+    case 0x01:
+      CoreBridge.setWarehouseLength(Warehouse.getAvailableLength());
+      break;
+
+    default:
+      if (warehouse_request > 0x01) {
+        int *buf = (int *)malloc(144 * sizeof(int));
+        int buf_length = 144;
+
+        Warehouse.getDataByPage(warehouse_request - 0x02, buf_length, buf);
+        CoreBridge.setWarehouseBuffer((uint16_t *)buf, buf_length);
+      }
+  }
 }
 
 void turnSwitchOn(int addr) {
@@ -79,7 +115,7 @@ void turnSwitchOff(int addr) {
   sendCmd(Serial3, CMD_DO_MODULE, p, sizeof(p));
 }
 
-void smartCurrentCheck() {
+void smfCheckRoutine() {
   if (sys_status.sum_current > MAX_CURRENT) {
     if (!smf_status.emerg_triggered) {
       if (device_config.advanced_smf) {
@@ -138,6 +174,7 @@ void periodicCurrentRequest() {
 
   if (millis() - t >= PERIODID_CURRENT_TIME) { //5 minutes interval
     sendReqData(Serial3, MODULE_CURRENT);
+    Warehouse.appendData(sys_status.sum_current);
 
     t = millis();
   }

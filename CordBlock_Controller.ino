@@ -27,6 +27,8 @@ struct system_status_t {
 
 Uart Serial3 (&sercom0, 5, 6, SERCOM_RX_PAD_1, UART_TX_PAD_0);
 
+static int *warehouse_buf = (int *)malloc(144 * sizeof(int));
+
 void setup() {
   /*** Warehouse Init. for RingEEPROM and Sensor ***/
   Warehouse.begin();
@@ -44,41 +46,45 @@ void setup() {
   SerialNina.begin(115200);
   //
 
+  if (false) {
+    Serial.println("[Warehouse] Clearing storage");
+    Warehouse.clearStorage();
+
+    /*Serial.println("[Warehouse] Appending fake data");
+      for (int i = 0; i < 14; i++) {
+      Warehouse.appendData(random(100, 15000));
+      }
+
+      Serial.print("[Warehouse] Current head: ");
+      Serial.println(Warehouse.getHeadAddr());*/
+  }
+
   /*** Action in setup() ***/
   moduleReconncTrial();
 }
 
 void loop() {
-  configurationsUpdateLoop();
-  
-  switch (WifiMgr.getStatus()) {
-    case 3:
-      digitalWrite(WIFI_STATE_PIN, HIGH);
-      break;
-
-    case 4:
-      CoreBridge.resetNetwork();
-      resetSAMD21();
-      break;
-
-    default:
-      digitalWrite(WIFI_STATE_PIN, LOW);
-      break;
-  }
-
-  if (Serial.available()) { //for test only
+  /*if (Serial.available()) { //for test only
     int c = Serial.read();
 
     if (c == 87) { //W
       //
     }
-  }
+    }
 
-  if (SerialNina.available()) Serial.write(SerialNina.read());
+    if (SerialNina.available()) Serial.write(SerialNina.read());
+  */
+  
+  configurationsUpdateLoop();
+  
+  wifiLedCheckRoutine();
+
+  warehouseRequestCheckRoutine();
 
   receiveSerial();
 
-  smartCurrentCheck();
+  smfCheckRoutine();
+  
   periodicCurrentRequest();
 
   moduleDataUpdateLoop();
