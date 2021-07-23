@@ -5,8 +5,9 @@
 #define MAX_CURRENT             1500
 #define LONG_PRESS_TIME         10000
 #define PERIODID_CURRENT_TIME   300000 
+#define LIVE_DETECT_INTERVAL    1000
 
-#define DEBUG                   1
+#define DEBUG                   0
 #define ENABLE_HOMEKIT          1
 
 #define RST_PIN                 2

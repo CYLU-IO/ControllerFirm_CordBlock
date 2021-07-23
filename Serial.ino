@@ -22,6 +22,44 @@ void moduleReconncTrial() {
   sendAddress(Serial1);
 }
 
+void nextModuleLiveDetect() {
+  static unsigned long t;
+  static bool previous;
+  static bool sent;
+
+  if (!sent) {
+    previous = sys_status.module_connected;
+
+    if (sys_status.module_initialized) {
+      sendCmd(Serial1, CMD_HI);
+
+      sent = true;
+      sys_status.module_connected = false;
+    }
+
+    t = millis();
+  }
+
+  if (millis() - t > LIVE_DETECT_INTERVAL) {
+    static bool corebridge_removed = false;
+
+    if (!sys_status.module_connected) {
+      if (!corebridge_removed) {
+        digitalWrite(MODULES_STATE_PIN, LOW);
+        CoreBridge.createAccessory();
+        CoreBridge.beginAccessory();
+
+        corebridge_removed = true;
+      }
+
+      sendAddress(Serial1);
+    } else {
+      corebridge_removed = false;
+    }
+
+    sent = false;
+  }
+}
 
 void receiveSerial() {
   static CMD_STATE state = RC_NONE;
@@ -31,159 +69,160 @@ void receiveSerial() {
   static int buffer_pos;
   static char buffer[96];
 
-  if (Serial1.available()) {
-    char c = receiveCmd(Serial1, state, cmd, length, buffer_pos, buffer);
+  char c = receiveCmd(Serial1, state, cmd, length, buffer_pos, buffer);
 
-    switch (c) {
-      case CMD_REQ_ADR: {
+  switch (c) {
+    case CMD_REQ_ADR: {
+        sendAddress(Serial1);
+        break;
+      }
+
+    case CMD_LINK_MODULE: {
+        DeserializationError err = deserializeJson(data, buffer);
+
+        if (err == DeserializationError::Ok) {
+          int updateNumModule = data["total"].as<int>();
+          int index = data["addr"].as<int>() - 1;
+          const char* name = data["name"].as<const char*>();
+
+          digitalWrite(MODULES_STATE_PIN, LOW);
+
+          if (index + 1 == updateNumModule) { //first module arrives
+            sys_status.module_initialized = false;
+
+#if ENABLE_HOMEKIT
+            Serial.print(F("[HOMEKIT] Create accessory: "));
+            Serial.println(CoreBridge.createAccessory());
+#endif
+          }
+
+          sys_status.modules[index][0] = data["pri"].as<int>(); //insert id into slaves table
+          sys_status.modules[index][1] = data["switch_state"].as<int>(); //insert switch state into slaves table
+          sys_status.modules[index][2] = 0;
+
+#if DEBUG
+          Serial.print("Addr: "); Serial.println(index + 1);
+          Serial.print("Priority: "); Serial.println(sys_status.modules[index][0]);
+          Serial.print("Name: "); Serial.println(name);
+#endif
+
+          Serial.print(F("[CoreBridge] Add service: "));
+          Serial.println(CoreBridge.addModule(index,
+                                              name,
+                                              0,
+                                              sys_status.modules[index][0],
+                                              sys_status.modules[index][1]));
+
+          if (index == 0) {
+            sys_status.num_modules = updateNumModule;
+
+#if DEBUG
+            Serial.print(F("[UART] Total modules: "));
+            Serial.println(updateNumModule);
+#endif
+
+            char *p = (char*)malloc(updateNumModule * sizeof(char));
+            for (int i = 0; i < updateNumModule; i++) p[i] = i + 1;
+            sendCmd(Serial3, CMD_INIT_MODULE, p, updateNumModule); //using boardcast
+
+            sendReqData(Serial3, MODULE_CURRENT);
+
+#if ENABLE_HOMEKIT
+            Serial.print(F("[HOMEKIT] Begin HAP service: "));
+            Serial.println(CoreBridge.beginAccessory());
+#endif
+
+            digitalWrite(MODULES_STATE_PIN, HIGH);
+            sys_status.module_initialized = true;
+            sys_status.module_connected = true;
+            Serial.println("[UART] Connection done");
+          }
+        } else {
           sendAddress(Serial1);
-          break;
         }
+        break;
+      }
 
-      case CMD_LINK_MODULE: {
-          DeserializationError err = deserializeJson(data, buffer);
+    case CMD_HI:
+      sys_status.module_connected = true;
+      break;
 
-          if (err == DeserializationError::Ok) {
-            int updateNumModule = data["total"].as<int>();
-            int index = data["addr"].as<int>() - 1;
-            const char* name = data["name"].as<const char*>();
+    case CMD_UPDATE_DATA: {
+        if (length < 3) return;
 
-            digitalWrite(MODULES_STATE_PIN, LOW);
+        int addr = buffer[0];
+        int value = bytesCombine(buffer[2], buffer[3]);
 
-            if (index + 1 == updateNumModule) { //first module arrives
-              sys_status.module_initialized = false;
-
-#if ENABLE_HOMEKIT
-              Serial.print(F("[HOMEKIT] Create accessory: "));
-              Serial.println(CoreBridge.createAccessory());
+        switch (buffer[1]) {
+          case MODULE_SWITCH_STATE: {
+#if DEBUG
+              Serial.print("[UART] Module ");
+              Serial.print(addr);
+              Serial.print(" state changes to ");
+              Serial.println(value);
 #endif
+              sys_status.modules[addr - 1][1] = value;
+              CoreBridge.setModuleSwitchState(addr - 1, value);
+              break;
             }
 
-            sys_status.modules[index][0] = data["pri"].as<int>(); //insert id into slaves table
-            sys_status.modules[index][1] = data["switch_state"].as<int>(); //insert switch state into slaves table
-            sys_status.modules[index][2] = 0;
+          /*case MODULE_PRIORITY: {
+            #if DEBUG
+              Serial.print("[UART] Module ");
+              Serial.print(addr);
+              Serial.print(" priority changes to ");
+              Serial.println(value);
+            #endif
+              sys_status.modules[addr - 1][0] = value;
+              break;
+            }*/
+
+          case MODULE_CURRENT: {
+#if DEBUG
+              Serial.print("[UART] Module ");
+              Serial.print(addr);
+              Serial.print(" current updates to ");
+              Serial.println(value);
+#endif
+
+              /*** Check MCUB Triggering ***/
+              if (value >= sys_status.modules[addr - 1][2] + smf_status.mcub) {
+                smf_status.overload_triggered_addr = addr;
+                smfCheckRoutine();
 
 #if DEBUG
-            Serial.print("Addr: "); Serial.println(index + 1);
-            Serial.print("Priority: "); Serial.println(sys_status.modules[index][0]);
-            Serial.print("Name: "); Serial.println(name);
+                Serial.print("[SMF] MCUB Triggered by module ");
+                Serial.println(addr);
 #endif
+              }
 
-#if ENABLE_HOMEKIT
-            Serial.print(F("[HOMEKIT] Add service: "));
-            Serial.println(CoreBridge.addModule(index,
-                                                name,
-                                                0,
-                                                sys_status.modules[index][0],
-                                                sys_status.modules[index][1]));
-#endif
+              /*** Update module current data ***/
+              sys_status.modules[addr - 1][2] = value;
+              CoreBridge.setModuleCurrent(addr - 1, value);
 
-            if (index == 0) {
-              sys_status.num_modules = updateNumModule;
+              /*** Update MCUB ***/
+              int sum = 0;
+              for (int i = 0; i < sys_status.num_modules; i++) sum += sys_status.modules[i][2];
+              sys_status.sum_current = sum;
+
+              int mcub = (MAX_CURRENT - sum) / sys_status.num_modules;
+              mcub = (mcub >= 0) ? mcub : 0;
+              smf_status.mcub = mcub;
+
+              int a[1] = {0};
+              int v[1] = {mcub};
+              sendUpdateData(Serial3, MODULE_MCUB, a, v, 1);
 
 #if DEBUG
-              Serial.print(F("[UART] Total modules: "));
-              Serial.println(updateNumModule);
+              Serial.print("[SMF] Update MCUB: ");
+              Serial.println(smf_status.mcub);
 #endif
-
-              char *p = (char*)malloc(updateNumModule * sizeof(char));
-              for (int i = 0; i < updateNumModule; i++) p[i] = i + 1;
-              sendCmd(Serial3, CMD_INIT_MODULE, p, updateNumModule); //using boardcast
-
-              sendReqData(Serial3, MODULE_CURRENT);
-
-#if ENABLE_HOMEKIT
-              Serial.print(F("[HOMEKIT] Begin HAP service: "));
-              Serial.println(CoreBridge.beginAccessory());
-#endif
-
-              digitalWrite(MODULES_STATE_PIN, HIGH);
-              sys_status.module_initialized = true;
-              Serial.println("[UART] Connection done");
+              break;
             }
-          } else {
-            sendAddress(Serial1);
-          }
-          break;
         }
 
-      case CMD_UPDATE_DATA: {
-          if (length < 3) return;
-
-          int addr = buffer[0];
-          int value = bytesCombine(buffer[2], buffer[3]);
-
-          switch (buffer[1]) {
-            case MODULE_SWITCH_STATE: {
-#if DEBUG
-                Serial.print("[UART] Module ");
-                Serial.print(addr);
-                Serial.print(" state changes to ");
-                Serial.println(value);
-#endif
-                sys_status.modules[addr - 1][1] = value;
-                CoreBridge.setModuleSwitchState(addr - 1, value);
-                break;
-              }
-
-            /*case MODULE_PRIORITY: {
-              #if DEBUG
-                Serial.print("[UART] Module ");
-                Serial.print(addr);
-                Serial.print(" priority changes to ");
-                Serial.println(value);
-              #endif
-                sys_status.modules[addr - 1][0] = value;
-                break;
-              }*/
-
-            case MODULE_CURRENT: {
-#if DEBUG
-                Serial.print("[UART] Module ");
-                Serial.print(addr);
-                Serial.print(" current updates to ");
-                Serial.println(value);
-#endif
-
-                /*** Check MCUB Triggering ***/
-                if (value >= sys_status.modules[addr - 1][2] + smf_status.mcub) {
-                  smf_status.overload_triggered_addr = addr;
-                  smfCheckRoutine();
-
-#if DEBUG
-                  Serial.print("[SMF] MCUB Triggered by module ");
-                  Serial.println(addr);
-#endif
-                }
-
-                /*** Update module current data ***/
-                sys_status.modules[addr - 1][2] = value;
-                CoreBridge.setModuleCurrent(addr - 1, buffer[2], buffer[3]);
-
-                /*** Update MCUB ***/
-                int sum = 0;
-                for (int i = 0; i < sys_status.num_modules; i++) sum += sys_status.modules[i][2];
-                sys_status.sum_current = sum;
-
-                int mcub = (MAX_CURRENT - sum) / sys_status.num_modules;
-                mcub = (mcub >= 0) ? mcub : 0;
-                smf_status.mcub = mcub;
-
-                int a[1] = {0};
-                int v[1] = {mcub};
-                sendUpdateData(Serial3, MODULE_MCUB, a, v, 1);
-
-#if DEBUG
-                Serial.print("[SMF] Update MCUB: ");
-                Serial.println(smf_status.mcub);
-#endif
-                break;
-              }
-          }
-
-          break;
-        }
-    }
+        break;
+      }
   }
 }
 
@@ -268,7 +307,7 @@ char receiveCmd(Stream &_serial, CMD_STATE &state, char &cmd, int &length, int &
       }
 
     case RC_PAYLOAD: {
-        if (buffer_pos < length && serial->available()) {
+        while (buffer_pos < length && serial->available()) {
           buffer[buffer_pos++] = serial->read();
         }
 
@@ -322,15 +361,6 @@ void sendCmd(Stream &_serial, char cmd, char* payload, int length) {
 void sendCmd(Stream &_serial, char cmd) {
   char *p = 0x00;
   sendCmd(_serial, cmd, p, 0);
-}
-
-char serialRead(Stream &_serial) {
-  Stream* serial = &_serial;
-
-  while (!serial->available())
-    delay(1);
-
-  return (uint8_t)serial->read();
 }
 
 void clearSerial(Stream &_serial) {

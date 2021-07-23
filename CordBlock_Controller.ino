@@ -23,11 +23,10 @@ struct system_status_t {
   int sum_current;
   int modules[20][3]; //modules DB[priority][switchState][current]
   bool module_initialized;
+  bool module_connected;
 } sys_status;
 
 Uart Serial3 (&sercom0, 5, 6, SERCOM_RX_PAD_1, UART_TX_PAD_0);
-
-static int *warehouse_buf = (int *)malloc(144 * sizeof(int));
 
 void setup() {
   /*** Warehouse Init. for RingEEPROM and Sensor ***/
@@ -42,7 +41,8 @@ void setup() {
   resetToFactoryDetect();
 
   //TEST ONLY- Remove
-  while (!Serial);
+  //while (!Serial);
+  SerialNina.begin(9600);
   SerialNina.begin(115200);
   //
 
@@ -64,19 +64,22 @@ void setup() {
 }
 
 void loop() {
-  /*if (Serial.available()) { //for test only
+  if (Serial.available()) { //for test only
     int c = Serial.read();
 
     if (c == 87) { //W
-      //
-    }
-    }
+      int buf[1] = {sys_status.sum_current};
+      CoreBridge.setWarehouseBuffer((uint16_t *)buf, 1);
 
-    if (SerialNina.available()) Serial.write(SerialNina.read());
-  */
-  
+      Warehouse.appendData(sys_status.sum_current);
+      sendReqData(Serial3, MODULE_CURRENT);
+    }
+  }
+
+  if (SerialNina.available()) Serial.write(SerialNina.read());
+
   configurationsUpdateLoop();
-  
+
   wifiLedCheckRoutine();
 
   warehouseRequestCheckRoutine();
@@ -84,10 +87,12 @@ void loop() {
   receiveSerial();
 
   smfCheckRoutine();
-  
+
   periodicCurrentRequest();
 
   moduleDataUpdateLoop();
+
+  nextModuleLiveDetect();
 
 #if ENABLE_HOMEKIT
   homekitLoop();
