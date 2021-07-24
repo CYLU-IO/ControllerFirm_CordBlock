@@ -22,25 +22,22 @@ void moduleReconncTrial() {
   sendAddress(Serial1);
 }
 
-void nextModuleLiveDetect() {
+void ModuleLiveCheckRoutine() {
   static unsigned long t;
   static bool previous;
   static bool sent;
 
-  if (!sent) {
+  if (!sent && sys_status.module_initialized) {
+    sendCmd(Serial3, CMD_HI);
+
     previous = sys_status.module_connected;
+    sys_status.module_connected = false;
 
-    if (sys_status.module_initialized) {
-      sendCmd(Serial1, CMD_HI);
-
-      sent = true;
-      sys_status.module_connected = false;
-    }
-
+    sent = true;
     t = millis();
   }
 
-  if (millis() - t > LIVE_DETECT_INTERVAL) {
+  if (sent && millis() - t > LIVE_DETECT_INTERVAL) {
     static bool corebridge_removed = false;
 
     if (!sys_status.module_connected) {
@@ -124,6 +121,7 @@ void receiveSerial() {
             char *p = (char*)malloc(updateNumModule * sizeof(char));
             for (int i = 0; i < updateNumModule; i++) p[i] = i + 1;
             sendCmd(Serial3, CMD_INIT_MODULE, p, updateNumModule); //using boardcast
+            free(p);
 
             sendReqData(Serial3, MODULE_CURRENT);
 
@@ -269,6 +267,10 @@ void sendUpdateData(Stream &_serial, char type, int* addr, int* value, int lengt
 
   sendCmd(_serial, CMD_UPDATE_DATA, p, l);
   free(p);
+}
+
+void sendResetModule(Stream &_serial, char* addr, int length) {
+  sendCmd(_serial, CMD_RESET_MODULE, addr, length);
 }
 
 /*** Util ***/

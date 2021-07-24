@@ -7,7 +7,7 @@
 #define PERIODID_CURRENT_TIME   300000 
 #define LIVE_DETECT_INTERVAL    1000
 
-#define DEBUG                   0
+#define DEBUG                   1
 #define ENABLE_HOMEKIT          1
 
 #define RST_PIN                 2
@@ -26,6 +26,7 @@
 #define CMD_HI                  0x48 //'H'
 #define CMD_INIT_MODULE         0x49 //'I'
 #define CMD_LINK_MODULE         0x4C //'L'
+#define CMD_RESET_MODULE        0x52 //'R'
 #define CMD_UPDATE_DATA         0x55 //'U'
 #define CMD_START               0xFF
 

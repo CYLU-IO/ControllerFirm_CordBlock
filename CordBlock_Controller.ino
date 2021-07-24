@@ -68,15 +68,19 @@ void loop() {
     int c = Serial.read();
 
     if (c == 87) { //W
-      int buf[1] = {sys_status.sum_current};
-      CoreBridge.setWarehouseBuffer((uint16_t *)buf, 1);
+      Serial.println("Fomatting");
+      char *p = (char*)malloc(4 * sizeof(char));
+      for (int i = 0; i < 4; i++) p[i] = i + 1;
+      sendResetModule(Serial3, p, 4); //using boardcast
+      free(p);
 
-      Warehouse.appendData(sys_status.sum_current);
-      sendReqData(Serial3, MODULE_CURRENT);
+      //delay(3000);
+      //Serial.println("Reconnect");
+      //sendAddress(Serial1);
     }
   }
 
-  if (SerialNina.available()) Serial.write(SerialNina.read());
+  //if (SerialNina.available()) Serial.write(SerialNina.read());
 
   configurationsUpdateLoop();
 
@@ -92,7 +96,7 @@ void loop() {
 
   moduleDataUpdateLoop();
 
-  nextModuleLiveDetect();
+  ModuleLiveCheckRoutine();
 
 #if ENABLE_HOMEKIT
   homekitLoop();

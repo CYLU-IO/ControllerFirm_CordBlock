@@ -173,6 +173,7 @@ void periodicCurrentRequest() {
   static unsigned long t;
 
   if (millis() - t >= PERIODID_CURRENT_TIME) { //5 minutes interval
+    Serial.println("\nperiodicCurrentRequest Triggered");
     int buf[1] = {sys_status.sum_current};
     CoreBridge.setWarehouseBuffer((uint16_t *)buf, 1);
 
