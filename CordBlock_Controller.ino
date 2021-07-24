@@ -86,8 +86,6 @@ void loop() {
 
   wifiLedCheckRoutine();
 
-  warehouseRequestCheckRoutine();
-
   receiveSerial();
 
   smfCheckRoutine();

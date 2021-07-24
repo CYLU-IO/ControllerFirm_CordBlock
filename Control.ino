@@ -87,25 +87,6 @@ void wifiLedCheckRoutine() {
   }
 }
 
-void warehouseRequestCheckRoutine() {
-  int warehouse_request = CoreBridge.readWarehouseRequest();
-
-  switch (warehouse_request) {
-    case 0x01:
-      CoreBridge.setWarehouseLength(Warehouse.getAvailableLength());
-      break;
-
-    default:
-      if (warehouse_request > 0x01) {
-        int buf[144];
-        int buf_length = 144;
-
-        Warehouse.getDataByPage(warehouse_request - 0x02, buf_length, buf);
-        CoreBridge.setWarehouseBuffer((uint16_t *)buf, buf_length);
-      }
-  }
-}
-
 void turnSwitchOn(int addr) {
   char p[2] = {addr, DO_TURN_ON};
   sendCmd(Serial3, CMD_DO_MODULE, p, sizeof(p));
@@ -175,7 +156,7 @@ void periodicCurrentRequest() {
   if (millis() - t >= PERIODID_CURRENT_TIME) { //5 minutes interval
     Serial.println("\nperiodicCurrentRequest Triggered");
     int buf[1] = {sys_status.sum_current};
-    CoreBridge.setWarehouseBuffer((uint16_t *)buf, 1);
+    CoreBridge.pushWarehouseBuffer((uint16_t *)buf, 1);
 
     Warehouse.appendData(sys_status.sum_current);
     sendReqData(Serial3, MODULE_CURRENT);
