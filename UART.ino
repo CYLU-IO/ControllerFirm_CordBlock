@@ -83,6 +83,4 @@ void uartTransmit(Stream &_serial, int length, char* payload) {
 
   serial->write(crc);
   serial->write(CMD_EOF);
-
-  free(payload);
 }

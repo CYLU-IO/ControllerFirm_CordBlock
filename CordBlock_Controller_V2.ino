@@ -21,51 +21,54 @@ void setup() {
   CoreBridge.begin();
 
   //TEST ONLY- Remove
-  while (!Serial);
+  //while (!Serial);
   SerialNina.begin(115200);
   //
 }
 
 void loop() {
+  ///// UART Receive /////
   static UART_MSG_RC_STATE state = RC_NONE;
   static int length;
   static char buffer[128];
   static int buffer_pos;
 
   if (uartReceive(Serial1, state, length, buffer, buffer_pos))
-    CoreBridge.uartReceive(length, (uint8_t *)buffer);
+    CoreBridge.uartReceive(1, length, (uint8_t *)buffer);
 
-  static unsigned long t = millis();
-
+  ///// UART Transmit /////
   static uint8_t port;
   static uint16_t tlength;
   static char *payload;
-  if (millis() - t > 100) {
-    if ((payload = CoreBridge.uartTransmit(port, tlength)) && payload) {
-      Stream *serial = &Serial;
 
-      switch (port) {
-        case 1: {
-            *serial = Serial1;
-            break;
-          }
-          
-        case 3: {
-            *serial = Serial3;
-            break;
-          }
-      }
+  if ((payload = CoreBridge.uartTransmit(port, tlength)) && payload && port != 255) {
+    Stream *serial = &Serial;
 
-      uartTransmit(*serial, tlength, payload);
-      free(payload);
+    switch (port) {
+      case 1: {
+          serial = &Serial1;
+          break;
+        }
+
+      case 3: {
+          serial = &Serial3;
+          break;
+        }
     }
 
-    t = millis();
+    //uartTransmit(Serial, tlength, payload);
+    uartTransmit(*serial, tlength, payload);
   }
 
+  free(payload);
 
-  //if (SerialNina.available())
-  //  Serial.write(SerialNina.read());
+  ///// NINA Console Monitor /////
+  while (SerialNina.available())
+    Serial.write(SerialNina.read());
+}
+
+void SERCOM0_Handler() {
+  Serial3.IrqHandler();
 }
 
 uint8_t calcCRC(char* str, int length) {
@@ -77,9 +80,6 @@ uint8_t calcCRC(char* str, int length) {
 
   return crc.getCRC();
 }
-
-
-
 
 #ifdef __arm__
 // should use uinstd.h to define sbrk but Due causes a conflict
