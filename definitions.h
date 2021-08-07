@@ -9,6 +9,9 @@
 #define WIFI_STATE_PIN          7
 #define MODULES_STATE_PIN       9
 
+///// INTERVALS /////
+#define BUTTON_LONG_CLICK_INTERVAL 5000
+
 ///// UART MESSAGE STRUC /////
 #define CMD_FAIL                0x10
 #define CMD_EOF                 0x20

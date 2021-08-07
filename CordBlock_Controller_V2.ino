@@ -1,5 +1,6 @@
 #include <CRC.h>
 #include <CRC8.h>
+#include <Button2.h>
 #include <CoreBridge.h>
 
 #include "definitions.h"
@@ -7,9 +8,18 @@
 
 Uart Serial3 (&sercom0, 5, 6, SERCOM_RX_PAD_1, UART_TX_PAD_0);
 
+Button2 button = Button2(BUTTON_PIN);
+
 void setup() {
   pinPeripheral(5, PIO_SERCOM_ALT);
   pinPeripheral(6, PIO_SERCOM_ALT);
+
+  ///// Pins Set /////
+  digitalWrite(RST_PIN, HIGH);
+  pinMode(RST_PIN, OUTPUT);
+
+  pinMode(MODULES_STATE_PIN, OUTPUT);
+  pinMode(WIFI_STATE_PIN, OUTPUT);
 
 #if DEBUG
   Serial.begin(9600);
@@ -20,6 +30,14 @@ void setup() {
 
   CoreBridge.begin();
 
+  ///// Button Event /////
+  button.setLongClickTime(BUTTON_LONG_CLICK_INTERVAL);
+  button.setLongClickHandler(resetToFactory);
+
+  uint8_t *p = new uint8_t[1] {0x00};
+  CoreBridge.uartReceive(255, 1, p);
+  delete p;
+
   //TEST ONLY- Remove
   //while (!Serial);
   SerialNina.begin(115200);
@@ -27,6 +45,9 @@ void setup() {
 }
 
 void loop() {
+  ///// Pin Check /////
+  button.loop();
+
   ///// UART Receive /////
   static UART_MSG_RC_STATE state = RC_NONE;
   static int length;
@@ -54,21 +75,30 @@ void loop() {
           serial = &Serial3;
           break;
         }
+      case 254: {
+          digitalWrite(payload[0], payload[1]);
+          break;
+        }
     }
 
-    //uartTransmit(Serial, tlength, payload);
     uartTransmit(*serial, tlength, payload);
   }
 
   free(payload);
 
   ///// NINA Console Monitor /////
-  while (SerialNina.available())
-    Serial.write(SerialNina.read());
+  while (SerialNina.available()) Serial.write(SerialNina.read());
 }
 
-void SERCOM0_Handler() {
-  Serial3.IrqHandler();
+void resetToFactory(Button2& btn) {
+#if DEBUG
+  Serial.println("[BUTTON] Triggered resetToFactory");
+#endif
+
+  uint8_t *p = new uint8_t[1] {0x01};
+  CoreBridge.uartReceive(255, 1, p);
+  delete p;
+  digitalWrite(RST_PIN, LOW);
 }
 
 uint8_t calcCRC(char* str, int length) {
@@ -79,6 +109,10 @@ uint8_t calcCRC(char* str, int length) {
   crc.add((uint8_t*)str, length);
 
   return crc.getCRC();
+}
+
+void SERCOM0_Handler() {
+  Serial3.IrqHandler();
 }
 
 #ifdef __arm__
